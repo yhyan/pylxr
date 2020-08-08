@@ -1,0 +1,14 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <title>Tree selector</title>
+  </head>
+  <body>
+    <h1>Please select one of the following trees:</h1>
+    <ul>
+      {% for tree in trees %}
+      <li><em>{{tree['name']}}</em>: <a href="/source/{{tree['name']}}">{{tree['desc']}}</a></li>
+      {% end %}
+    </ul>
+  </body>
+</html>

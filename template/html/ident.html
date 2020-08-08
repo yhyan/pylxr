@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block page %}
+<h1>Identifier search</h1>
+<p>
+  Type the full name of an identifier to look for 
+  (a function name, variable name, typedef, etc).
+  <br>
+  Matches are case-sensitive.
+  Check "Definitions only" to find only definitions of the symbol
+  (unchecked, all references).
+  <br>
+  As a convenience,
+  extra <span class="identline identapprox">999</span> line numbers denote
+  <strong>case-insensitive</strong> occurrences
+  (either belonging to a case-insensitive language or differing in case).
+</p>
+
+<form method="get" action="/ident/{{tree['name']}}">
+  <p>
+    <label>
+      <b>Identifier: </b>
+      <input id="focus" type="text" name="_i" value="{{ident}}" size="15">
+    </label>
+    <label>
+      <input type="checkbox" name="_identdefonly" value="1" $checked>
+      &nbsp;&nbsp;Definitions only
+    </label>
+    <input type="hidden" name="_remember" value="1">&nbsp;&nbsp;<input type="submit" value="Find">
+  </p>
+</form>  
+   
+<h2>Results for <span class="identident">$identifier</span></h2>
+<h3>Definitions</h3>
+<table class="identdef"> 
+  <tr>
+    <th class="identtype">Type</th>
+    <th class="identfile">File</th>
+    <th class="identline">Line</th>
+  </tr>
+  {% for df in defs %}
+  <tr>
+    <td class="identtype">{{df[0]}}</td>
+    <td class="identfile">{% raw df[1] %}</td>
+    <td class="identline">{% raw df[2] %}</td>
+  </tr>
+  {% end %}
+</table>
+<p>
+  {{ len(defs) }} declarations in {{len(defs)}} files.
+</p>
+
+<h3>References:</h3>
+<table class="identref">
+  <tr>
+    <th class="identfile">File</th>
+    <th class="identline">Line</th>
+  </tr>
+  {% for ref in refs %}
+  <tr>
+    <td class="identfile">{% raw ref[0][0] %}</td>
+    <td class="identline">
+      {% for item in ref %}
+      {% raw item[1] %}
+      {% end %}
+    </td>
+  </tr>
+  {% end %}
+</table>
+<p>
+  {{sum([len(ref) for ref in refs])}} references in {{len(refs)}} files.
+</p>
+
+{% end %}

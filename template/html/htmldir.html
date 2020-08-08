@@ -1,0 +1,35 @@
+<div class="dirdesc">
+  {{desc}}
+</div>
+
+<table class="dircontent">
+  <thead>
+    <tr class="dirheader">
+      <th class="diricon">&nbsp;</th>
+      <th class="dirname">Name</th>
+      <th class="dirsize">Size</th>
+      <th class="dirtime">Date (UTC)</th>
+      <th class="dirdesc">Description</th>
+    </tr>
+  </thead>
+  <tfoot>
+    <tr class="dirheader">
+      <th class="diricon">&nbsp;</th>
+      <th class="dirname">Name</th>
+      <th class="dirsize">Size</th>
+      <th class="dirtime">Date (UTC)</th>
+      <th class="dirdesc">Description</th>
+    </tr>
+  </tfoot>
+  <tbody>
+    {% for fi in files %}
+    <tr class="{{fi['dirclass']}}">
+      <td class="diricon"><a class='' href="{{fi['href']}}"><img src="{{fi['img']}}" alt="folder"></a></td>
+      <td class="dirname"><a class="{{fi['class']}}" href="{{fi['href']}}">{{fi["name"]}}</a></td>
+      <td class="dirsize">{{fi["filesize"]}}</td>
+      <td class="dirtime">{{fi["modtime"]}}</td>
+      <td class="dirdesc">{{fi["desc"]}}</td>
+    </tr>
+    {% end %}
+  </tbody>
+</table>

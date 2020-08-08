@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block page %}
+<h1>Free-text search with SWISH-E</h1>
+<p>
+  Type a string to find:
+  <br>1) all filenames matching the filter (top input field only),
+  <br>2) all occurrences of the string across all files (bottom input field only),
+  <br>3) the occurrences of the string in the files matching the filter (both input fields).
+  <br>
+  <br>Matches are case-insensitive unless you check the box below.
+  <br>To use full-fledged Perl regex in the filename filter, check the other box below.
+
+  <form method="get" action="/search/redispy">
+    <table>
+      <tr>
+	<td><p><b>Files named:</b></p></td>
+	<td><input type="text" name="_filestring" value="{{filetext}}" size="50"></td>
+	<td>
+	  &nbsp;&nbsp;&nbsp;&nbsp;
+	  <label>
+	    <input type="checkbox" name="_advanced" {{advancedchecked}} value="1">
+	    Advanced (allows usage of<a href="http://perldoc.perl.org/perlrequick.html" target="_blank">perl regex</a>)
+	  </label>
+	</td>
+      </tr>
+      <tr>
+	<td> <p><b>Or containing:</b></p> </td>
+	<td> <input id="focus" type="text" name="_string" value="{{searchtext}}" size="50"> </td>
+      </tr>
+      <tr>
+	<td></td>
+	<td colspan=2>
+	  <p>
+	    Supported operators: AND, OR, NOT, ( ) boolean grouping, trailing *, " " phrase grouping<br>
+	    Example: (book* OR magazine*) NOT "my magazine"<br>
+	  </p>
+	</td>
+      </tr>
+      <tr>
+	<td></td>
+	<td>
+	  <label>
+	    <input type="checkbox" name="_casesensitive" {{casesensitivechecked}} value="1">
+	    Case-sensitive
+	  </label>
+	</td>
+	<td>
+	  &nbsp;&nbsp;&nbsp;&nbsp;
+	  <input type="submit" value="Search">
+	</td>
+    </table>
+    <br>
+  </form>
+  <hr>
+<p>
+  Powered by <a href="http://swish-e.org" target="_blank">Swish-E</a>.
+  (<a href="http://swish-e.org/docs/swish-search.html" target="_blank">Full
+    search syntax documentation</a>)
+</p>
+<p>
+  {{len(results)}} files found.
+</p>
+
+<h2>Results for <span class="searchident">{{searchtext}}</span></h2>
+<table class="searchref">
+  <thead>
+    <tr>
+      <th class="searchfile">File</th>
+      <th class="searchtext">Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for result in results %}
+    <tr>
+      <td class="{{result['tdfile'] + " " +  result['searchinvalid']}}">{{result['file']}}</td>
+      <td class="searchtext">{{result['text']}}</td>
+    </tr>
+    {% end %}
+  </tbody>
+</table>
+{% end %}
