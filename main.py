@@ -210,6 +210,11 @@ class MainHandler(tornado.web.RequestHandler):
         html += '''</pre>'''
         return html
 
+    def _calc_html_file(self):
+        fp = self.files.getfp(self.reqfile, self.versioin)
+        html = fp.read()
+        fp.close()
+        return html
 
     def _calc_source_content(self):
         if self.get_argument('raw', None) == '1':
@@ -219,6 +224,8 @@ class MainHandler(tornado.web.RequestHandler):
             return self._calc_dir_content()
         elif self.files.parseable(self.reqfile, self.versioin):
             return self._calc_code_file()
+        elif self.reqfile.lower().endswith('html'):
+            return self._calc_html_file()
         else:
             return self._calc_raw_file()
 
