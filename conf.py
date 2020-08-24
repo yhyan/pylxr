@@ -35,9 +35,7 @@ config = {
     'swishdirbase': index_dir,
 
     'ectagsbin': '/usr/bin/ctags', # Popen(["which", "ctags"], stdout=PIPE).communicate()[0].rstrip(),
-    'ectagsopts': ' '.join(['--c-types=+plx',
-                            '--eiffel-types=+l',
-                            '--fortran-types=+L']),
+    'ectagsopts': ' ',
 
     'virtroot': '/lxr',
 
