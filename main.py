@@ -227,6 +227,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("source.html", **self.detail)
 
     def return_search_page(self):
+        # TODO general search page
         self.detail['filetext'] = self.get_argument('filetext', '')
         self.detail['searchtext'] = self.get_argument('searchtext', '')
         self.detail['results'] = self.get_swish_search('')
