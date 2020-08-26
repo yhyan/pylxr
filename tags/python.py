@@ -5,8 +5,14 @@ import ast
 import os
 
 
-def visit_class(node):
-    return []
+def visit_class(class_node):
+    tags = []
+    for node in class_node.body:
+        node_type = node.__class__.__name__
+        if node_type in ('AsyncFunctionDef', 'FunctionDef'):
+            if node.name[0] != '_':
+                tags.append([node.name, node.lineno, 'f', ''])
+    return tags
 
 def find_tags(abspath):
     '''
