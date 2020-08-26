@@ -15,7 +15,7 @@ from tornado import template
 from files import Files
 from simpleparse import *
 import conf
-from index import Index
+
 from models import Symbol, Ref, Definitions, db
 
 from dbcache import treecache, langcache, filecache, symbolcache
@@ -303,12 +303,13 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     tornado.options.parse_command_line()
+    from conf import is_debug_mode
     settings = dict(
         cookie_secret=conf.cookie_secret,
         template_path=os.path.join(os.path.dirname(__file__), "template/html"),
         static_path=os.path.join(os.path.dirname(__file__), "template"),
         xsrf_cookies=True,
-        debug=False,
+        debug=is_debug_mode,
     )
 
     mapping = [

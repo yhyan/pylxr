@@ -5,8 +5,12 @@ import subprocess
 from conf import config
 
 def ctags(abspath, lang):
+    # print(abspath)
+    if lang == 'python':
+        return ctags_v2(abspath, lang)
+
     cmd = str('%s %s --excmd=number --language-force=%s -f - %s' % (str(config['ectagsbin']), config['ectagsopts'], lang, abspath))
-    # print(cmd)
+
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     out, err = process.communicate()
     if not out:
@@ -32,3 +36,9 @@ def ctags(abspath, lang):
         c_line = int(c_line.replace(';"', ''))
         tags.append([c_sym, c_line, c_type, c_ext])
     return tags
+
+
+
+def ctags_v2(abspath, lang):
+    from tags.base import find_tags
+    return find_tags(abspath, lang)

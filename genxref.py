@@ -12,7 +12,6 @@ import os
 import subprocess
 
 from files import Files
-from index import Index
 from lang import Lang
 from simpleparse import *
 from models import db, Tree, File, Symbol, LangType, Definitions, Ref
@@ -39,8 +38,6 @@ class Genxref(object):
         
         self.init_files('/', version)
 
-        # 建立swish
-        # self.gensearch(version)
         # ctags 符号
         self.symbols('/', version)
         # sym ref
@@ -85,47 +82,6 @@ class Genxref(object):
                 self.pathname_to_obj[pathname] = f
         db.session.commit()
         filecache.load(self.treeid)
-
-        
-    def feedswish(self, pathname, version, swish):
-        if self.files.isdir(pathname, version):
-            dirs, files = self.files.getdir(pathname, version)
-            for i in dirs + files:
-                self.feedswish(os.path.join(pathname, i),
-                               version,
-                               swish)
-        else:
-            _realfile = self.files.toreal(pathname, version)
-            if _realfile in self.filestype:
-                if self.filestype[_realfile] not in self.parses:
-                    return
-
-            # filelist.write('%s\n' % pathname)
-            if self.files.getsize(pathname, version) > 0:
-                fp = self.files.getfp(pathname, version)
-                content = fp.read()
-                swish_input = [
-                    "Path-Name: %s\n" % pathname,
-                    "Content-Length:  %s\n" % len(content),
-                    "Document-Type: TXT\n",
-                    "\n",
-                    content]
-            
-                swish.stdin.write(''.join(swish_input))
-                fp.close()
-        
-                
-    def gensearch(self, version):
-        index_file = "%s.%s.index" % (self.tree['name'], version)
-        index_file = os.path.join(self.config['swishdirbase'], index_file)
-        cmd = '%s -S prog -i stdin -v 1 -c %s -f %s' % (
-            self.config['swishbin'],
-            self.config['swishconf'],
-            index_file)
-        swish = subprocess.Popen(cmd, stdin=subprocess.PIPE, shell=True)
-        self.feedswish('.', version, swish)
-        out, err = swish.communicate()
-
 
     def symbols(self, pathname, version):
         total_commit = 0

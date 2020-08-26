@@ -268,7 +268,7 @@ class SQLAlchemy(object):
         >>> user_list = User.query.filter(db.and_(User.username=='test1', User.email.ilike('%@gmail.com'))).limit(10)
         
     """
-    def __init__(self, engine_url, echo=False, pool_recycle=7200, pool_size=10,
+    def __init__(self, engine_url='', echo=False, pool_recycle=7200, pool_size=10,
                  session_extensions=None, session_options=None):
         # create signals sender
         self.sender = str(uuid.uuid4())
@@ -277,8 +277,11 @@ class SQLAlchemy(object):
                                   
         self.session = self.create_scoped_session(session_options)
         self.Model = self.make_declarative_base()
-        
-        self.engine = sqlalchemy.create_engine(engine_url, echo=echo) #, pool_recycle=pool_recycle, pool_size=pool_size)
+
+        if engine_url != '':
+            self.engine = sqlalchemy.create_engine(engine_url, echo=echo) #, pool_recycle=pool_recycle, pool_size=pool_size)
+        else:
+            self.engine = None
 
         _include_sqlalchemy(self)
 
@@ -298,11 +301,17 @@ class SQLAlchemy(object):
 
     def create_all(self):
         """Creates all tables."""
-        self.Model.metadata.create_all(bind=self.engine)
+        if self.engine is not None:
+            self.Model.metadata.create_all(bind=self.engine)
+        else:
+            raise Exception('engine is none')
 
     def drop_all(self):
         """Drops all tables."""
-        self.Model.metadata.drop_all(bind=self.engine)
+        if self.engine is not None:
+            self.Model.metadata.drop_all(bind=self.engine)
+        else:
+            raise Exception('engine is none')
 
 
 
