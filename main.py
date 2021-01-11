@@ -57,7 +57,7 @@ class MainHandler(tornado.web.RequestHandler):
             from conf import index_dir
             dbfile = os.path.join(index_dir, dbfile)
             if os.path.exists(dbfile):
-                ret.append(item)
+                ret.append(tree)
         return ret
 
 
