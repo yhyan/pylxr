@@ -9,15 +9,27 @@ KEYWORDS = {k:'kw_'+k for k in 'func package return if range case default var co
 
 class GoTok:
     "tokenizer for golang"
+
+
+
     def t_COMMENT1(self, t):
         r"//.*\n"
         # warning: what about comment on last line
         if t.value.startswith('// +build'):
             t.type = 'BUILDCONSTRAINT'
+        t.lexer.lineno += t.value.count('\n')
         return t
 
-    t_COMMENTN = r"/\*(.|\n)*?\*/"
-    t_ENDL = r'\n'
+    def t_COMMENTN(self, t):
+        r"/\*(.|\n)*?\*/"
+        t.lexer.lineno += t.value.count('\n')
+        return t
+
+    def t_ENDL(self, t):
+        r'\n'
+        t.lexer.lineno += len(t.value)
+        return t
+
     t_INTLIT = r'\d+'
     t_STRLIT = r'"(\\"|.)*"'
     t_CHARLIT = r"'(\\'|\\?[^'])'"

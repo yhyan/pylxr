@@ -1,106 +1,73 @@
+#coding:utf-8
+
 "statements.py -- top-level statement parser for golang"
 
 import collections
-from . import lrparser
-
-class SyntaxError(Exception): pass
-class NotFound(Exception): pass
-
-class BraceScope(list):
-    PAIRS = ('()', '[]', '{}')
-
-    def __init__(self):
-        super(BraceScope, self).__init__()
-        self.index_stack = []
-
-    def handle(self, i, tok):
-        "if token is a brace, handle it. crash on syntax error. returns a slice if we closed a scope"
-        for left, right in self.PAIRS:
-            if tok.type == left:
-                self.append(left)
-                self.index_stack.append(i)
-            elif tok.type == right:
-                if self and self[-1] == left:
-                    self.pop()
-                    start = self.index_stack.pop()
-                    return slice(start, i+1)
-                else:
-                    raise SyntaxError('unclosed', tok, self)
-
-STATEMENTS = {
-    tup.__name__: tup for tup in (
-        collections.namedtuple('kw_func', 'method name args ret body slice'),
-        collections.namedtuple('kw_type', 'name slice'),
-        collections.namedtuple('kw_package', 'name slice'),
-        # import var and const are processed the same way and should have the same fields
-        collections.namedtuple('kw_import', 'body slice'),
-        collections.namedtuple('kw_var', 'body slice'),
-        collections.namedtuple('kw_const', 'body slice'),
-    )
-}
-
-# this is for top-level stuff that we didn't process
-NegativeSlice = collections.namedtuple('NegativeSlice', 'slice')
 
 IGNORE = {'COMMENT1', 'COMMENTN', 'ENDL', 'WS', ' '}
 
-def first_after(type_, istart, tokens):
-    "return index of first token with type_ at or after istart in tokens"
-    for i in range(istart, len(tokens)):
-        if tokens[i].type == type_:
-            return i
-    raise NotFound(type_, istart)
 
-def last_of(type_, tokens):
-    "return index of last token with type"
-    for i, tok in reversed(enumerate(tokens)):
-        if tok.type == type_:
-            return i
-    raise NotFound(type_, None)
 
-def add_negative_slices(tups, ntokens):
-    "paste in NegativeSlice for toplevel stuff not captured so we can reassemble the file after modifying statements"
-    prevstop = 0
-    ret = []
-    for tup in tups:
-        if tup.slice.start != prevstop:
-            ret.append(NegativeSlice(slice(prevstop, tup.slice.start)))
-        ret.append(tup)
-        prevstop = tup.slice.stop
-    assert prevstop <= ntokens
-    if prevstop < ntokens:
-        ret.append(NegativeSlice(slice(prevstop, ntokens)))
-    return ret
+bracelet_pairs = ('()', '[]', '{}')
+global_statement_type = ('kw_func', 'kw_package', 'kw_type', 'kw_import', 'kw_var', 'kw_const')
 
-FUNC_PARSER = lrparser.LRParser(
-    ['kw_func', ')?', 'NAME', ')', 'ret?', '}'],
-    {'ret':[
-        # warning: can functions return functions?
-        ('kw_interface', '}'),
-        (']', 'ret'),
-        ('*', 'ret'),
-        ('NAME', '.', 'NAME'),
-        ('NAME',),
-        (')',),
-    ]}
-)
+def find_func_name(tokens, start):
+    n = len(tokens)
+    stack = []
+    name_index, next_index = None, None
+    while start < n:
+        token = tokens[start]
 
-def merge_slices(slices):
-    """empty input returns empty slice. fail if slices not contiguous.
-    return single slice with lowest slice.start, highest slice.stop
-    """
-    if not slices:
-        return slice(0, 0)
-    merged = slices[0]
-    for slice_ in slices[1:]:
-        assert slice_.start == merged.stop
-        merged = slice(merged.start, slice_.stop)
-    return merged
+        if token.type in ('(', ')', '[', ']', '{', '}'):
+            for left, right in bracelet_pairs:
+                if token.type == left:
+                    stack.append(left)
+                elif token.type == right:
+                    if stack and stack[-1] == left:
+                        stack.pop()
+        # 找到一个func name, stack 必须是空
+        elif token.type == 'NAME' and name_index is None and not stack:
+            name_index = start
+        elif token.type in global_statement_type and not stack and name_index is not None:
+            next_index = start
+            break
+
+        start += 1
+    if next_index is None:
+        next_index = start
+    return name_index, next_index
+
+def find_type_name(tokens, start):
+    n = len(tokens)
+    stack = []
+    name_index, next_index = None, None
+    while start < n:
+        token = tokens[start]
+
+        if token.type in ('(', ')', '[', ']', '{', '}'):
+            for left, right in bracelet_pairs:
+                if token.type == left:
+                    stack.append(left)
+                elif token.type == right:
+                    if stack and stack[-1] == left:
+                        stack.pop()
+        # 找到一个func name, stack 必须是空
+        elif token.type == 'NAME' and name_index is None and not stack:
+            name_index = start
+        elif token.type in global_statement_type and not stack and name_index is not None:
+            next_index = start
+            break
+        # print(token.type, token.value, token.lineno)
+        start += 1
+    if next_index is None:
+        next_index = start
+    return name_index, next_index
+
 
 class StatementFinder:
     "see docs for parse() method"
     def __init__(self):
-        self.scope = BraceScope()
+
         self.clear()
 
     def clear(self):
@@ -111,44 +78,33 @@ class StatementFinder:
 
     def yield_stmts(self, tokens):
         "yield tuples from STATEMENTS for each toplevel item found in tokens"
-        pairs = [(i, tok) for i, tok in enumerate(tokens) if tok.type not in IGNORE or tok.type == 'ENDL']
-        for i, tok in pairs:
-            closed_slice = self.scope.handle(i, tok)
-            if not self.scope:
-                if closed_slice is not None:
-                    self.scopes_since_open.append(closed_slice)
-                if self.open_statement:
-                    self.slices_since_open.append(closed_slice or slice(i, i+1))
-                    open_i, open_tok = self.open_statement
-                    tup = STATEMENTS[open_tok.type]
-                    if open_tok.type == 'kw_func':
-                        if tok.type == '}':
-                            if len(self.scopes_since_open) >= 2:
-                                finals = [tokens[slice_.stop-1].type for slice_ in self.slices_since_open]
-                                func_fields = FUNC_PARSER.parse(finals)
-                                if not isinstance(func_fields, lrparser.ParseError):
-                                    _, method, name, args, ret, body = [tokens[merge_slices(self.slices_since_open[slice_])] for slice_ in func_fields]
-                                    yield tup(method, name, args, ret, body, slice(open_i, i+1))
-                                    self.clear()
-                    elif open_tok.type == 'kw_type':
-                        if closed_slice is not None or tok.type == 'ENDL':
-                            # note above: the condition is implicitly (ENDL && scope=0)
-                            name = tokens[first_after('NAME', open_i, tokens)]
-                            yield tup(name, slice(open_i, i+1))
-                            self.clear()
-                    elif open_tok.type == 'kw_package':
-                        yield tup(tok, slice(open_i, i+1))
-                        self.clear()
-                    elif open_tok.type in ('kw_import', 'kw_var', 'kw_const'):
-                        if closed_slice is not None or tok.type == 'ENDL':
-                            yield tup(closed_slice, slice(open_i, i+1))
-                            self.clear()
-                    else:
-                        raise ValueError('unk open_tok.type', open_tok)
-                elif tok.type in STATEMENTS:
-                    self.open_statement = i, tok
-                    self.slices_since_open.append(slice(i, i+1))
+        i = 0
+        max_length = len(tokens)
+        tags = []
+
+        while i < max_length:
+            tok = tokens[i]
+            if tok.type == 'kw_func':
+                name_index, next_index = find_func_name(tokens, i+1)
+                i = next_index
+                print('func', tokens[name_index].value, tokens[name_index].lineno)
+                continue
+            elif tok.type == 'kw_type':
+                name_index, next_index = find_type_name(tokens, i+1)
+                i = next_index
+                print('type', tokens[name_index].value, tokens[name_index].lineno)
+                continue
+            elif tok.type == 'kw_var':
+                pass
+            elif tok.type == 'kw_const':
+                pass
+            elif tok.type == 'kw_package':
+                pass
+            elif tok.type == 'kw_import':
+                pass
+            i += 1
+
 
     def parse(self, tokens):
         "return list of tuples from STATEMENTS / NegativeSlice"
-        return add_negative_slices(self.yield_stmts(tokens), len(tokens))
+        return self.yield_stmts(tokens)
