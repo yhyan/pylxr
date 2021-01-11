@@ -24,7 +24,13 @@ def find_tags(abspath):
     if os.path.isfile(abspath):
         with open(abspath) as fp:
             txt = fp.read()
-        mod = ast.parse(txt)
+        try:
+            mod = ast.parse(txt)
+        except:
+            import traceback
+            print(abspath)
+            print(traceback.format_exc())
+            raise
         for node in mod.body:
             node_type = node.__class__.__name__
             if node_type in ('AsyncFunctionDef', 'FunctionDef'):
