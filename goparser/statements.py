@@ -76,7 +76,7 @@ class StatementFinder:
         self.scopes_since_open = []
         self.slices_since_open = []
 
-    def yield_stmts(self, tokens):
+    def yield_stmts(self, tokens, debug=True):
         "yield tuples from STATEMENTS for each toplevel item found in tokens"
         i = 0
         max_length = len(tokens)
@@ -87,12 +87,22 @@ class StatementFinder:
             if tok.type == 'kw_func':
                 name_index, next_index = find_func_name(tokens, i+1)
                 i = next_index
-                print('func', tokens[name_index].value, tokens[name_index].lineno)
+                if debug:
+                    print('func', tokens[name_index].value, tokens[name_index].lineno)
+                tags.append((tokens[name_index].value,
+                             tokens[name_index].lineno,
+                             'f','',
+                             ))
                 continue
             elif tok.type == 'kw_type':
                 name_index, next_index = find_type_name(tokens, i+1)
                 i = next_index
-                print('type', tokens[name_index].value, tokens[name_index].lineno)
+                if debug:
+                    print('type', tokens[name_index].value, tokens[name_index].lineno)
+                tags.append((tokens[name_index].value,
+                             tokens[name_index].lineno,
+                             'm',''
+                             ))
                 continue
             elif tok.type == 'kw_var':
                 pass
@@ -103,8 +113,8 @@ class StatementFinder:
             elif tok.type == 'kw_import':
                 pass
             i += 1
+        return tags
 
-
-    def parse(self, tokens):
+    def parse(self, tokens, debug=False):
         "return list of tuples from STATEMENTS / NegativeSlice"
-        return self.yield_stmts(tokens)
+        return self.yield_stmts(tokens, debug)

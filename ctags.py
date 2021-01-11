@@ -6,8 +6,13 @@ from conf import config
 
 def ctags(abspath, lang):
     # print(abspath)
-    if lang == 'python':
+    if lang not in ('python', 'c', 'c++', 'go'):
+        return []
+
+    if lang in ('python', 'go',):
         return ctags_v2(abspath, lang)
+
+
 
     cmd = str('%s %s --excmd=number --language-force=%s -f - %s' % (str(config['ectagsbin']), config['ectagsopts'], lang, abspath))
 

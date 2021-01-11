@@ -44,7 +44,7 @@ class Files(object):
     def gettype(self, pathname, releaseid):
         idx = pathname.rfind(".")
         if idx > 0:
-            ext = pathname[idx+1:]
+            ext = pathname[idx+1:].lower()
         else:
             ext = None
         if ext == 'py':
@@ -55,6 +55,8 @@ class Files(object):
             return 'c++'
         elif ext == 'h':
             return 'c++'
+        elif ext == 'go':
+            return 'go'
 
         if pathname == 'makefile':
             return 'makefile'
@@ -68,7 +70,7 @@ class Files(object):
 
     def parseable(self, pathname, releaseid):
         ftype = self.gettype(pathname, releaseid)
-        if ftype in ['python', 'c++', 'c', 'h']:
+        if ftype in ['python', 'c++', 'c', 'h', 'go']:
             return True
         
         return False

@@ -514,10 +514,52 @@ class CPPParse(SimpleParse):
         return ''.join(kk)
 
 
+class GOParse(SimpleParse):
+    lang = 'go'
+    blankre = re.compile('([\s\<\>"])', re.M)
+    identdef = re.compile('([a-zA-Z_]\w+)', re.M)
+    reserved = ['auto', 'break', 'case', 'char', 'const', 'continue',
+                'default', 'do', 'double', 'else', 'enum', 'extern',
+                'float', 'for', 'goto', 'if', 'int', 'long', 'register',
+                'return', 'short', 'signed', 'sizeof', 'static', 'struct',
+                'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile',
+                'while', '#include', '#define', '#ifdef', '#else', '#elif',
+                '#ifndef', '#endif', '#if', '#undef', '#error', '#pragma',
+                '#warning', 'defined']
+    spec = [
+        {"open": "/\\*", "close": "*/", "type": "comment"},
+        {"open": "//", "close": "\n", "type": "comment"},
+        {"open": '"', "close": '"', "type": "string"},
+        {"open": "'", "close": "'", "type": "string"},
+        # {"open": '#pa', "close": '\n', "type": "include"}
+    ]
+
+    typemap = {
+        'c': 'class',
+        'd': 'macro (un)definition',
+        'e': 'enumerator',
+        'f': 'function definition',
+        'g': 'enumeration name',
+        'i': 'interface',
+        'l': 'local variable',
+        'm': 'class, struct, or union member',
+        'n': 'namespace',
+        'p': 'function prototype or declaration',
+        's': 'structure name',
+        't': 'typedef',
+        'u': 'union name',
+        'v': 'variable definition',
+        'x': 'extern or forward variable declaration'
+    }
+
+
+
 parses = {
     PythonParse.lang: PythonParse,
     CParse.lang: CParse,
-    CPPParse.lang: CPPParse
+    CPPParse.lang: CPPParse,
+    GOParse.lang: GOParse,
+
 }
 
 
