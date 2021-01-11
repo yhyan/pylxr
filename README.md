@@ -13,9 +13,7 @@ git clone git@github.com:yhyan/pylxr.git
 cd pylxr
 ```
 
-- 创建tag索引
-
-创建一个local_conf.py，例如：
+- 创建local_conf.py，例如：
 
 ```
 #!/usr/bin/env python
@@ -42,7 +40,7 @@ trees = {
 
 ```
 
-创建tag索引
+- 创建tag索引
 
 ```
 python genxref.py redispy
