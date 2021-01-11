@@ -13,28 +13,22 @@ from tornado.options import define, options, parse_command_line
 from tornado import template
 
 from files import Files
-from simpleparse import *
+
 import conf
 
-from models import Symbol, Ref, Definitions, db
+from models import Symbol, Ref, Definitions
 
-from dbcache import treecache, langcache, filecache, symbolcache
 
-define("port", default=8888, help="run on the given port", type=int)
+# localhost:8888  chrome 测试时，port=8888会访问不了静态文件。
 
-for name in list(conf.trees.keys()):
-    tree = conf.trees[name]
-    if tree.get('display', False):
-        tree_id = treecache.get_treeid(tree['name'], tree['version'])
-        symbolcache.load(tree_id)
-        filecache.load(tree_id)
-    else:
-        conf.trees.pop(name)
+define("port", default=9999, help="run on the given port", type=int)
+
 
 class MainHandler(tornado.web.RequestHandler):
 
     def on_finish(self):
-        db.session.remove()
+        # db.session.remove()
+        pass
 
     def prepare(self):
         self.page = None
@@ -43,7 +37,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.tree = None
         self.files = None
         self.tree_id = None
-        self.versioin = ''
+        self.version = ''
         self.detail = {}
         self.detail['trees'] = self.get_all_trees()
         self.detail['pages'] = {
@@ -72,6 +66,8 @@ class MainHandler(tornado.web.RequestHandler):
             self.tree['name'], filename, line, line)
 
     def return_ident_page(self):
+        from dbcache import treecache, langcache, filecache, symbolcache
+
         ident = self.get_argument('_i', '')
 
         symid = symbolcache.get_symid(self.tree_id, ident)
@@ -121,7 +117,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("ident.html", **self.detail)
 
     def _calc_dir_content(self):
-        dirs, files = self.files.getdir(self.reqfile, self.versioin)
+        dirs, files = self.files.getdir(self.reqfile, self.version)
         if not dirs and not files:
             return '''<p class="error">\n<i>The directory /%s does not exist, is empty or is hidden by an exclusion rule.</i>\n</p>\n''' % self.reqfile
 
@@ -176,6 +172,8 @@ class MainHandler(tornado.web.RequestHandler):
         return html
 
     def _calc_code_file(self):
+        from simpleparse import PythonParse, CParse, CPPParse
+
         if self.reqfile.lower().endswith(".py"):
             parse = PythonParse(conf.config, self.tree)
         elif self.reqfile.lower().endswith(".c"):
@@ -187,13 +185,13 @@ class MainHandler(tornado.web.RequestHandler):
         else:
             parse = None
         if parse:
-            parse.parse_file(self.reqfile, self.versioin)
+            parse.parse_file(self.reqfile, self.version)
             return parse.out()
         return self._calc_raw_file()
 
     def _calc_raw_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.versioin)
+        fp = self.files.getfp(self.reqfile, self.version)
         lineno = 0
         for li in fp:
             lineno += 1
@@ -204,14 +202,14 @@ class MainHandler(tornado.web.RequestHandler):
 
     def _calc_text_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.versioin)
+        fp = self.files.getfp(self.reqfile, self.version)
         html += fp.read()
         fp.close()
         html += '''</pre>'''
         return html
 
     def _calc_html_file(self):
-        fp = self.files.getfp(self.reqfile, self.versioin)
+        fp = self.files.getfp(self.reqfile, self.version)
         html = fp.read()
         fp.close()
         return html
@@ -220,9 +218,9 @@ class MainHandler(tornado.web.RequestHandler):
         if self.get_argument('raw', None) == '1':
             return self._calc_text_file()
 
-        if self.files.isdir(self.reqfile, self.versioin):
+        if self.files.isdir(self.reqfile, self.version):
             return self._calc_dir_content()
-        elif self.files.parseable(self.reqfile, self.versioin):
+        elif self.files.parseable(self.reqfile, self.version):
             return self._calc_code_file()
         elif self.reqfile.lower().endswith('html'):
             return self._calc_html_file()
@@ -266,6 +264,8 @@ class MainHandler(tornado.web.RequestHandler):
         args[0] 'search', 'ident', 'source'
         args[1] treename
         '''
+        from models import change_session
+
         if len(args) <= 1:
             self.page = 'index'
             return self.return_index_page()
@@ -276,10 +276,19 @@ class MainHandler(tornado.web.RequestHandler):
             self.return_index_page()
             return
 
+
         self.tree = conf.trees.get(args[1])
+        self.version = self.tree['version']
+
+        change_session(self.tree['name'], self.version)
+
+        from dbcache import treecache
+
         self.tree_id = treecache.get_treeid(self.tree['name'], self.tree['version'])
-        self.versioin = self.tree['version']
+
         self.files = Files(conf.trees.get(args[1]))
+
+
 
         if len(args) >= 3:
             self.reqfile = args[2] or '/'

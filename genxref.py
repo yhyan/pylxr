@@ -3,23 +3,19 @@
 
 import sys
 import six
-if six.PY2:
-    reload(sys)
-    sys.setdefaultencoding('utf8')
 text_factory = str
 
 import os
 import subprocess
 
 from files import Files
-from lang import Lang
-from simpleparse import *
-from models import db, Tree, File, Symbol, LangType, Definitions, Ref
+from models import Tree, File, Symbol, LangType, Definitions, Ref, init_db, create_session
 from ctags import ctags
 
-from dbcache import treecache, langcache, filecache, symbolcache
+
 
 class Genxref(object):
+
 
     def __init__(self, config, tree):
         self.files = Files(tree)
@@ -28,10 +24,16 @@ class Genxref(object):
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
         self.config = config
-        self.symid = Symbol.next_symid()
+
 
 
     def main(self, version):
+        init_db(tree['name'], version)
+
+        self.session = create_session(tree['name'], version)
+
+        self.symid = Symbol.next_symid()
+
         self.init_tree()
         self.init_lang()
         self.pathname_to_obj = {}
@@ -45,6 +47,8 @@ class Genxref(object):
 
 
     def init_tree(self):
+        from dbcache import treecache
+
         self.treeid = treecache.get_treeid(self.tree['name'], tree['version'])
         if self.treeid is None:
             self.treeid = Tree.query.get_treeid(tree['name'], tree['version'])
@@ -53,6 +57,9 @@ class Genxref(object):
 
 
     def init_lang(self):
+        from dbcache import langcache
+        from simpleparse import parses
+
         self.parses = {}
         for k, v in parses.items():
             self.parses[k] = v(self.config, self.tree)
@@ -65,6 +72,7 @@ class Genxref(object):
         
 
     def init_files(self, pathname, version):
+        from dbcache import filecache
 
         _files = [(pathname, version)]
         
@@ -78,12 +86,14 @@ class Genxref(object):
             else:
                 f = File(self.treeid, pathname)
                 f.filetype = self.files.gettype(pathname, version)
-                db.session.add(f)
+                self.session.add(f)
                 self.pathname_to_obj[pathname] = f
-        db.session.commit()
+        self.session.commit()
         filecache.load(self.treeid)
 
     def symbols(self, pathname, version):
+        from dbcache import langcache, symbolcache
+
         total_commit = 0
         _files = [(pathname, version)]
         while _files:
@@ -101,22 +111,24 @@ class Genxref(object):
                         lang_typeid = langcache.get_typeid(o.filetype, self.parses[o.filetype].typemap[lang_type])
                         symbol_obj = Symbol(self.treeid, sym, self.symid)
                         defin = Definitions(self.symid, o.fileid, line, lang_typeid)
-                        db.session.add(symbol_obj)
-                        db.session.add(defin)
+                        self.session.add(symbol_obj)
+                        self.session.add(defin)
                         self.symid += 1
                     o.set_indexed()
-                    db.session.add(o)
+                    self.session.add(o)
                     total_commit += 1
                     if total_commit % 1000 == 0:
                         print(total_commit)
-                        db.session.commit()
-        db.session.commit()
+                        self.session.commit()
+        self.session.commit()
         print()
         print()
         symbolcache.load(self.treeid)
         
 
     def symref(self, pathname, version):
+        from dbcache import symbolcache
+
         total_commit = 0
         _files = [(pathname, version)]
         while _files:
@@ -136,21 +148,21 @@ class Genxref(object):
                         if _symid is None:
                             continue
                         ref = Ref(_symid, o.fileid, line)
-                        db.session.add(ref)
+                        self.session.add(ref)
                         total_commit += 1
                         if total_commit % 1000 == 0:
-                            db.session.commit()
+                            self.session.commit()
                             print(total_commit)
                     o.set_refered()
-                    db.session.add(o)
+                    self.session.add(o)
                     total_commit += 1
                     if total_commit % 1000 == 0:
-                        db.session.commit()
+                        self.session.commit()
                         print(total_commit)
 
                     if total_commit % 10000 == 0:
                         print(total_commit)
-        db.session.commit()
+        self.session.commit()
         print()
 
 
@@ -168,6 +180,7 @@ if __name__ == "__main__":
     tree = trees[treename]
     if version not in tree['versions']:
         version = tree['version']
+    init_db(tree['name'], version)
     g = Genxref(config, tree)
     g.main(version)
     

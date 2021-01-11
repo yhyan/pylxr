@@ -17,203 +17,29 @@ import sqlalchemy
 from sqlalchemy import orm
 from sqlalchemy.orm.session import Session
 from sqlalchemy.orm import attributes, object_mapper
-from sqlalchemy.orm.properties import RelationshipProperty
-from sqlalchemy.orm.interfaces import MapperExtension, SessionExtension, \
-     EXT_CONTINUE
-from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.util import to_list
+from sqlalchemy.orm.exc import UnmappedClassError
 
-from signals import Namespace
 
 from cache import cached
 
-_camelcase_re = re.compile(r'([A-Z]+)(?=[a-z0-9])')
 
-_signals = Namespace()
-
-models_committed = _signals.signal('models-committed')
-before_models_committed = _signals.signal('before-models-committed')
-
-def _make_table(db):
-    def _make_table(*args, **kwargs):
-        if len(args) > 1 and isinstance(args[1], db.Column):
-            args = (args[0], db.metadata) + args[1:]
-        return sqlalchemy.Table(*args, **kwargs)
-    return _make_table
-
-
-def _set_default_query_class(d):
-    if 'query_class' not in d:
-        d['query_class'] = BaseQuery
-
-
-def _wrap_with_default_query_class(fn):
-    @functools.wraps(fn)
-    def newfn(*args, **kwargs):
-        _set_default_query_class(kwargs)
-        if "backref" in kwargs:
-            backref = kwargs['backref']
-            if isinstance(backref, basestring):
-                backref = (backref, {})
-            _set_default_query_class(backref[1])
-        return fn(*args, **kwargs)
-    return newfn
-
-
-def _defines_primary_key(d):
-    """Figures out if the given dictonary defines a primary key column."""
-    return any(v.primary_key for k, v in d.items()
-               if isinstance(v, sqlalchemy.Column))
-
-
-def _include_sqlalchemy(obj):
-    for module in sqlalchemy, sqlalchemy.orm:
-        for key in module.__all__:
-            if not hasattr(obj, key):
-                setattr(obj, key, getattr(module, key))
-    # Note: obj.Table does not attempt to be a SQLAlchemy Table class.
-    obj.Table = _make_table(obj)
-    obj.mapper = signalling_mapper
-    obj.relationship = _wrap_with_default_query_class(obj.relationship)
-    obj.relation = _wrap_with_default_query_class(obj.relation)
-    obj.dynamic_loader = _wrap_with_default_query_class(obj.dynamic_loader)
-
-
-class _BoundDeclarativeMeta(DeclarativeMeta):
-
-    def __new__(cls, name, bases, d):
-        tablename = d.get('__tablename__')
-
-        # generate a table name automatically if it's missing and the
-        # class dictionary declares a primary key.  We cannot always
-        # attach a primary key to support model inheritance that does
-        # not use joins.  We also don't want a table name if a whole
-        # table is defined
-        if not tablename and not d.get('__table__') and \
-           _defines_primary_key(d):
-            def _join(match):
-                word = match.group()
-                if len(word) > 1:
-                    return ('_%s_%s' % (word[:-1], word[-1])).lower()
-                return '_' + word.lower()
-            d['__tablename__'] = _camelcase_re.sub(_join, name).lstrip('_')
-
-        return DeclarativeMeta.__new__(cls, name, bases, d)
-
-    def __init__(self, name, bases, d):
-        bind_key = d.pop('__bind_key__', None)
-        DeclarativeMeta.__init__(self, name, bases, d)
-        if bind_key is not None:
-            self.__table__.info['bind_key'] = bind_key
-
-
-class _SignallingSession(Session):
-
-    def __init__(self, db, autocommit=False, autoflush=False, **options):
-        self.sender = db.sender
-        self._model_changes = {}
-        Session.__init__(self, autocommit=autocommit, autoflush=autoflush,
-                         expire_on_commit=False,
-                         extension=db.session_extensions,
-                         bind=db.engine, **options)
 
 
 class _QueryProperty(object):
 
-    def __init__(self, sa):
-        self.sa = sa
+    def __init__(self, model):
+        self.model = model
 
     def __get__(self, obj, type):
         try:
             mapper = orm.class_mapper(type)
             if mapper:
-                return type.query_class(mapper, session=self.sa.session())
+                session = create_session_from_bind(self.model.metadata.bind)
+                return type.query_class(mapper, session=session)
         except UnmappedClassError:
             return None
-
-
-class _SignalTrackingMapperExtension(MapperExtension):
-
-    def after_delete(self, mapper, connection, instance):
-        return self._record(mapper, instance, 'delete')
-
-    def after_insert(self, mapper, connection, instance):
-        return self._record(mapper, instance, 'insert')
-
-    def after_update(self, mapper, connection, instance):
-        return self._record(mapper, instance, 'update')
-
-    def _record(self, mapper, model, operation):
-        pk = tuple(mapper.primary_key_from_instance(model))
-        #orm.object_session(model)._model_changes[pk] = (model, operation)
-        changes = {}
-
-        for prop in object_mapper(model).iterate_properties:
-            if not isinstance(prop, RelationshipProperty):
-                try:
-                    history = attributes.get_history(model, prop.key)
-                except:
-                    continue
-
-                added, unchanged, deleted = history
-
-                newvalue = added[0] if added else None
-
-                if operation=='delete':
-                    oldvalue = unchanged[0] if unchanged else None
-                else:
-                    oldvalue = deleted[0] if deleted else None
-
-                if newvalue or oldvalue:
-                    changes[prop.key] = (oldvalue, newvalue)
-
-        orm.object_session(model)._model_changes[pk] = (model.__tablename__, pk[0], changes, operation)
-        return EXT_CONTINUE
-
-
-class _SignallingSessionExtension(SessionExtension):
-
-    def before_commit(self, session):
-        d = session._model_changes
-        if d:
-            before_models_committed.send(session.sender, changes=d.values())
-        return EXT_CONTINUE
-
-    def after_commit(self, session):
-        d = session._model_changes
-        if d:
-            models_committed.send(session.sender, changes=d.values())
-            d.clear()
-        return EXT_CONTINUE
-
-    def after_rollback(self, session):
-        session._model_changes.clear()
-        return EXT_CONTINUE
-
-
-def signalling_mapper(*args, **kwargs):
-    """Replacement for mapper that injects some extra extensions"""
-    extensions = to_list(kwargs.pop('extension', None), [])
-    extensions.append(_SignalTrackingMapperExtension())
-    kwargs['extension'] = extensions
-    return sqlalchemy.orm.mapper(*args, **kwargs)
-
-
-class _ModelTableNameDescriptor(object):
-
-    def __get__(self, obj, type):
-        tablename = type.__dict__.get('__tablename__')
-        if not tablename:
-            def _join(match):
-                word = match.group()
-                if len(word) > 1:
-                    return ('_%s_%s' % (word[:-1], word[-1])).lower()
-                return '_' + word.lower()
-            tablename = _camelcase_re.sub(_join, type.__name__).lstrip('_')
-            setattr(type, '__tablename__', tablename)
-        return tablename
-
 
 
 class BaseQuery(orm.Query):
@@ -251,76 +77,72 @@ class Model(object):
     query = None
     
     PER_PAGE = None
-    
 
-class SQLAlchemy(object):
-    """
-    Example:
-        db = SQLAlchemy("sqlite:///test.db", True)
-        
-        class User(db.Model):
-            username = db.Column(db.String(16), unique=True, nullable=False, index=True)
-            password = db.Column(db.String(30), nullable=False)
-            email = db.Column(db.String(30), nullable=False)
 
-        >>> user1 = User.query.filter(User.username=='name').first()
-        >>> user2 = User.query.get(1)
-        >>> user_list = User.query.filter(db.and_(User.username=='test1', User.email.ilike('%@gmail.com'))).limit(10)
-        
-    """
-    def __init__(self, engine_url='', echo=False, pool_recycle=7200, pool_size=10,
-                 session_extensions=None, session_options=None):
-        # create signals sender
-        self.sender = str(uuid.uuid4())
+base_model = declarative_base(cls=Model, name='Model')
 
-        self.session_extensions = to_list(session_extensions, []) + [_SignallingSessionExtension()]
-                                  
-        self.session = self.create_scoped_session(session_options)
-        self.Model = self.make_declarative_base()
+base_model.query = _QueryProperty(base_model)
 
-        if engine_url != '':
-            self.engine = sqlalchemy.create_engine(engine_url, echo=echo) #, pool_recycle=pool_recycle, pool_size=pool_size)
-        else:
-            self.engine = None
 
-        _include_sqlalchemy(self)
 
-    def create_scoped_session(self, options=None):
-        """Helper factory method that creates a scoped session."""
-        if options is None:
-            options = {}
-        return orm.scoped_session(partial(_SignallingSession, self, **options))
-
-    def make_declarative_base(self):
-        """Creates the declarative base."""
-        base = declarative_base(cls=Model, name='Model',
-                                mapper=signalling_mapper,
-                                metaclass=_BoundDeclarativeMeta)
-        base.query = _QueryProperty(self)
-        return base
-
-    def create_all(self):
-        """Creates all tables."""
-        if self.engine is not None:
-            self.Model.metadata.create_all(bind=self.engine)
-        else:
-            raise Exception('engine is none')
-
-    def drop_all(self):
-        """Drops all tables."""
-        if self.engine is not None:
-            self.Model.metadata.drop_all(bind=self.engine)
-        else:
-            raise Exception('engine is none')
 
 
 
 import os
-from conf import data_dir
-DBURI = 'sqlite:///' + os.path.join(data_dir, 'lxr.sqlite3')
+from conf import index_dir
 
-db = SQLAlchemy(DBURI)
-        
+_eg_cache = {}
+
+def get_engine(project_name, project_version):
+    global _eg_cache
+
+    db_name = '%s.%s.sqlite3' % (project_name, project_version)
+    db_path = os.path.join(index_dir, db_name)
+    db_uri = 'sqlite:///' + db_path
+    eg = create_engine(db_uri, echo=False)
+    if not os.path.exists(db_path):
+        _eg_cache[db_name] = eg
+    return eg
+
+def create_session(project_name, project_version):
+    session = Session(autocommit=False, autoflush=False,
+                     expire_on_commit=False,
+                     bind=get_engine(project_name, project_version))
+    return session
+
+def init_db(project_name, project_version):
+    eg = get_engine(project_name, project_version)
+    base_model.metadata.bind = eg
+    base_model.metadata.drop_all()
+    base_model.metadata.create_all()
+
+_current_project_name = None
+_current_project_version = None
+
+def change_session(project_name, project_version):
+    global _current_project_name, _current_project_version
+
+    if project_name != _current_project_name or project_version != _current_project_version:
+        eg = get_engine(project_name, project_version)
+        base_model.metadata.bind = eg
+
+        _current_project_name = project_name
+        _current_project_version = _current_project_version
+
+        from dbcache import treecache, filecache, symbolcache
+
+        tree_id = treecache.get_treeid(project_name, project_version)
+        symbolcache.load(tree_id)
+        filecache.load(tree_id)
+
+
+def create_session_from_bind(bind):
+    session = Session(autocommit=False, autoflush=False,
+                     expire_on_commit=False,
+                     bind=bind)
+    return session
+
+
 class TreeQuery(BaseQuery):
 
     @cached
@@ -328,12 +150,13 @@ class TreeQuery(BaseQuery):
         rv = self.filter(Tree.name==name, Tree.version==version).first()
         if rv is None:
             rv = Tree(name, version)
-            db.session.add(rv)
-            db.session.commit()
+            session = create_session(name, version)
+            session.add(rv)
+            session.commit()
         return rv.id
     
 
-class Tree(db.Model):
+class Tree(base_model):
     __tablename__ = 'src_tree'
 
     query_class = TreeQuery
@@ -347,7 +170,7 @@ class Tree(db.Model):
         self.version = version
         
     
-class Definitions(db.Model):
+class Definitions(base_model):
     __tablename__ = 'src_definitions'
 
     id = Column(Integer, nullable=False, autoincrement=True, primary_key=True)
@@ -370,12 +193,12 @@ class LangTypeQuery(BaseQuery):
         rv = self.filter(LangType.lang == lang, LangType.desc == desc).first()
         if rv is None:
             rv = LangType(lang, desc)
-            db.session.add(rv)
-            db.session.commit()
+            self.session.add(rv)
+            self.session.commit()
         return rv
     
         
-class LangType(db.Model):
+class LangType(base_model):
     __tablename__ = 'src_langtype'
 
     query_class = LangTypeQuery
@@ -415,7 +238,7 @@ class SymbolQuery(BaseQuery):
 
 from sqlalchemy.sql import func
     
-class Symbol(db.Model):
+class Symbol(base_model):
     __tablename__ = 'src_symbol'
 
     query_class = SymbolQuery
@@ -431,7 +254,8 @@ class Symbol(db.Model):
 
     @classmethod
     def next_symid(cls):
-        qry = db.session.query(func.max(cls.symid).label('max_symid')).first()
+        session = create_session_from_bind(cls.metadata.bind)
+        qry = session.query(func.max(cls.symid).label('max_symid')).first()
         if qry and qry.max_symid:
             return qry.max_symid + 1
         return 1
@@ -450,7 +274,7 @@ class FileQuery(BaseQuery):
         return rv
 
     
-class File(db.Model):
+class File(base_model):
     __tablename__ = 'src_file'
 
     query_class = FileQuery
@@ -483,7 +307,7 @@ class File(db.Model):
     
         
         
-class Ref(db.Model):
+class Ref(base_model):
     __tablename__ = 'src_ref'
 
     
@@ -499,6 +323,8 @@ class Ref(db.Model):
 
 
 if __name__ == "__main__":
-    db.drop_all()        
-    db.create_all()
+    eg = get_engine('test', '1.0')
+    base_model.metadata.bind = eg
+    base_model.metadata.drop_all()
+    base_model.metadata.create_all()
 
