@@ -181,7 +181,7 @@ class MainHandler(tornado.web.RequestHandler):
         return html
 
     def _calc_code_file(self):
-        from simpleparse import PythonParse, CParse, CPPParse
+        from simpleparse import PythonParse, CParse, CPPParse, GOParse
 
         if self.reqfile.lower().endswith(".py"):
             parse = PythonParse(conf.config, self.tree)
@@ -191,6 +191,8 @@ class MainHandler(tornado.web.RequestHandler):
             parse = CPPParse(conf.config, self.tree)
         elif self.reqfile.lower().endswith(".h"):
             parse = CPPParse(conf.config, self.tree)
+        elif self.reqfile.lower().endswith('.go'):
+            parse = GOParse(conf.config, self.tree)
         else:
             parse = None
         if parse:
@@ -226,7 +228,6 @@ class MainHandler(tornado.web.RequestHandler):
     def _calc_source_content(self):
         if self.get_argument('raw', None) == '1':
             return self._calc_text_file()
-
         if self.files.isdir(self.reqfile, self.version):
             return self._calc_dir_content()
         elif self.files.parseable(self.reqfile, self.version):

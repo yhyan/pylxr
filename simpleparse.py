@@ -552,6 +552,25 @@ class GOParse(SimpleParse):
         'x': 'extern or forward variable declaration'
     }
 
+    def _parse_code(self, frag):
+        ss = self.identdef.split(frag)
+        kk = []
+        for i in ss:
+            if not i:
+                continue
+            if i == '<':
+                i = "&lt;"
+            elif i == '>':
+                i = "&gt;"
+
+            if self.is_reserved(i):
+                kk.append(self.get_reserved_link(i))
+            elif self.is_ident(i):
+                kk.append(self.get_ident_link(i))
+            else:
+                i = i.replace("<", "&lt;").replace(">", "&gt;")
+                kk.append(i)
+        return ''.join(kk)
 
 
 parses = {
