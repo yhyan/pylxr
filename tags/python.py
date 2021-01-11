@@ -31,7 +31,7 @@ def find_tags(abspath):
             print(abspath)
             print(traceback.format_exc())
             return []
-        
+
         for node in mod.body:
             node_type = node.__class__.__name__
             if node_type in ('AsyncFunctionDef', 'FunctionDef'):

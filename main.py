@@ -50,7 +50,16 @@ class MainHandler(tornado.web.RequestHandler):
 
 
     def get_all_trees(self):
-        return conf.trees.values()
+        items = conf.trees.values()
+        ret = []
+        for tree in items:
+            dbfile = '%s.%s.sqlite3' % (tree['name'], tree['version'])
+            from conf import index_dir
+            dbfile = os.path.join(index_dir, dbfile)
+            if os.path.exists(dbfile):
+                ret.append(item)
+        return ret
+
 
 
     def get_swish_search(self, search_text):
