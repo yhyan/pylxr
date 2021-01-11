@@ -1,6 +1,7 @@
 .idea/
 *.pyc
 local_conf.py
+local_conf.py~
 data/
 t.txt
 
