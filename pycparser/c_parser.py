@@ -129,6 +129,15 @@ class CParser(PLYParser):
         # Keeps track of the last token given to yacc (the lookahead token)
         self._last_yielded_token = None
 
+    def tokenize(self, text):
+        self.clex.input(text)
+        while True:
+            tok = self.clex.lexer.token()
+            if not tok:
+                break
+
+            print(tok)
+
     def parse(self, text, filename='', debuglevel=0):
         """ Parses C code and returns an AST.
 
@@ -491,6 +500,7 @@ class CParser(PLYParser):
     ##
     ## Precedence and associativity of operators
     ##
+    # If this changes, c_generator.CGenerator.precedence_map needs to change as well
     precedence = (
         ('left', 'LOR'),
         ('left', 'LAND'),
@@ -563,6 +573,7 @@ class CParser(PLYParser):
     def p_pp_directive(self, p):
         """ pp_directive  : PPHASH
         """
+        print(len(p), p[0], p[1])
         self._parse_error('Directives not supported yet',
                           self._token_coord(p, 1))
 
@@ -833,6 +844,7 @@ class CParser(PLYParser):
                                       | SIGNED
                                       | UNSIGNED
                                       | __INT128
+                                      | VA_LIST
         """
         p[0] = c_ast.IdentifierType([p[1]], coord=self._token_coord(p, 1))
 
