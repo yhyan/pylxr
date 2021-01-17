@@ -29,8 +29,9 @@ class CTok(object):
     ##
     def _error(self, msg, token):
         location = self._make_tok_location(token)
-        raise Exception('%s %s %s ' % (msg, location[0], location[1]))
-        self.lexer.skip(1)
+        #raise Exception('%s %s %s ' % (msg, location[0], location[1]))
+        print(('%s %s %s ' % (msg, location[0], location[1])))
+        token.lexer.skip(1)
 
     def _make_tok_location(self, token):
         return (token.lineno, self.find_tok_column(token))
@@ -67,7 +68,7 @@ class CTok(object):
         'COMMENTN','COMMENT1', 'DIRE',
         # Type identifiers (identifiers previously defined as
         # types with typedef)
-        'TYPEID',
+        #'TYPEID',
 
         # constants
         'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX', 'INT_CONST_BIN', 'INT_CONST_CHAR',
@@ -87,6 +88,8 @@ class CTok(object):
         'OR', 'AND', 'NOT', 'XOR', 'LSHIFT', 'RSHIFT',
         'LOR', 'LAND', 'LNOT',
         'LT', 'LE', 'GT', 'GE', 'EQ', 'NE',
+
+        'ESC',
 
         # Assignment
         'EQUALS', 'TIMESEQUAL', 'DIVEQUAL', 'MODEQUAL',
@@ -132,7 +135,7 @@ class CTok(object):
         return t
 
     def t_DIRE(self, t):
-        r'[ \t]*\#.*\n'
+        r'[ \t]*\#'
         t.lexer.lineno += t.value.count('\n')
         #pass
         return t
@@ -238,7 +241,8 @@ class CTok(object):
         return t
 
     def t_BLANK(self, t):
-        r'\s'
+        r'\s+'
+        t.lexer.lineno += t.value.count("\n")
         return t
 
     # Operators
@@ -262,6 +266,9 @@ class CTok(object):
     t_GE                = r'>='
     t_EQ                = r'=='
     t_NE                = r'!='
+
+    t_ESC               = r'\\'
+
 
     # Assignment operators
     t_EQUALS            = r'='
