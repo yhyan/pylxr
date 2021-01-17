@@ -7,11 +7,30 @@ https://github.com/eliben/pycparser
 use pycparser parse source file 
 '''
 
+import os
+from cparser import c_lexer, statements
+
 def find_tags(abspath):
     '''
 
     :param source_file: 
     :return: tag list 
     '''
-    pass
+    tags = []
+    if os.path.isfile(abspath):
+        with open(abspath) as fp:
+            txt = fp.read()
+
+        try:
+            tokens = c_lexer.lex(txt)
+
+            tags = statements.StatementFinder().parse(tokens)
+        except:
+            import traceback
+            print(traceback.format_exc())
+            return []
+
+    return tags
+
+
 

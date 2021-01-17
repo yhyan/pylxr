@@ -9,8 +9,8 @@ def ctags(abspath, lang):
     if lang not in ('python', 'c', 'c++', 'go'):
         return []
 
-    if lang in ('python', 'go',):
-        return ctags_v2(abspath, lang)
+    #if lang in ('python', 'go',):
+    return ctags_v2(abspath, lang)
 
 
 

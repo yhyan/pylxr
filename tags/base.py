@@ -20,10 +20,8 @@ class SourceFile(object):
 def find_tags(abspath, lang):
     if lang == 'go':
         import tags.go as mod
-    elif lang == 'c':
+    elif lang in ( 'c', 'c++', 'cpp'):
         import tags.c as mod
-    elif lang == 'cpp':
-        import tags.cpp as mod
     elif lang == 'python':
         import tags.python as mod
     else:
