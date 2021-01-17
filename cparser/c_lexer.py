@@ -12,6 +12,7 @@ import sys
 import ply
 from ply.lex import TOKEN
 
+# reference：https://github.com/eliben/pycparser.git
 
 class CTok(object):
 
