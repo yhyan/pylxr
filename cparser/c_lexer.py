@@ -80,6 +80,7 @@ class CTok(object):
         'WSTRING_LITERAL',
 
        # 'WS',
+        'NEWLINE', 'BLANK',
 
         # Operators
         'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD',
@@ -227,13 +228,18 @@ class CTok(object):
     ##
     ## Rules for the normal state
     ##
-    t_ignore = ' \t'
+    #t_ignore = ' \t'
     #t_WS = r' \t'
 
     # Newlines
     def t_NEWLINE(self, t):
         r'\n+'
         t.lexer.lineno += t.value.count("\n")
+        return t
+
+    def t_BLANK(self, t):
+        r'\s'
+        return t
 
     # Operators
     t_PLUS              = r'\+'
