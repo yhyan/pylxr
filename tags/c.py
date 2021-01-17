@@ -18,10 +18,9 @@ def find_tags(abspath):
     '''
     tags = []
     if os.path.isfile(abspath):
-        with open(abspath) as fp:
-            txt = fp.read()
-
         try:
+            with open(abspath) as fp:
+                txt = fp.read()
             tokens = c_lexer.lex(txt)
 
             tags = statements.StatementFinder().parse(tokens)
