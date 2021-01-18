@@ -11,9 +11,6 @@ from files import Files
 from models import File, Symbol, Definitions, Ref, init_db, create_session
 from tags.base import find_tags
 
-
-
-
 class Genxref(object):
 
 
@@ -26,7 +23,7 @@ class Genxref(object):
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
 
-
+        self.sym_filetype = {}
 
 
     def main(self):
@@ -37,7 +34,15 @@ class Genxref(object):
         self.symid = 1 # Symbol.next_symid()
 
 
-        self.init_lang()
+
+        from simpleparse import parses
+
+        self.parses = {}
+        for k, v in parses.items():
+            self.parses[k] = v(self.tree)
+
+        print(self.parses)
+
         self.pathname_to_obj = {}
         
         self.init_files('/', version)
@@ -48,18 +53,6 @@ class Genxref(object):
         self.symref('/', version)
 
 
-
-
-    def init_lang(self):
-        from simpleparse import parses
-
-        self.parses = {}
-        for k, v in parses.items():
-            self.parses[k] = v(self.tree)
-
-        print(self.parses)
-
-        
 
     def init_files(self, pathname, version):
 
@@ -98,6 +91,7 @@ class Genxref(object):
                         sym, line, lang_typeid = tag
                         symbol_obj = Symbol(sym, self.symid)
                         defin = Definitions(self.symid, o.fileid, line, lang_typeid)
+                        self.sym_filetype[self.symid] = o.filetype
                         self.session.add(symbol_obj)
                         self.session.add(defin)
                         self.symid += 1
@@ -133,6 +127,8 @@ class Genxref(object):
                     for word, line in words:
                         _symid = symbolcache.get_symid(self.project_name, self.project_version, word)
                         if _symid is None:
+                            continue
+                        if o.filetype != self.sym_filetype.get(_symid):
                             continue
                         ref = Ref(_symid, o.fileid, line)
                         self.session.add(ref)
