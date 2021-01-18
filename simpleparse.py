@@ -7,7 +7,6 @@ import string
 
 from files import Files
 
-from models import Symbol, Tree
 from dbcache import symbolcache
 
 __all__ = ['PythonParse', 'CPPParse', 'CParse', 'parses']
@@ -29,8 +28,9 @@ class SimpleParse(object):
     def __init__(self, config, tree):
         self.config = config
         self.tree = tree
+        self.project_name = tree['name']
+        self.project_version = tree['version']
         self.files = Files(tree)
-        self.treeid = Tree.query.get_treeid(tree['name'], tree['version'])
         self.filename = ''
         self.release_id = ''
         self.buf = []
@@ -85,7 +85,7 @@ class SimpleParse(object):
 
 
     def is_ident(self, word):
-        rv = symbolcache.get_symid(self.treeid, word)
+        rv = symbolcache.get_symid(self.project_name, self.project_version, word)
         if rv is None:
             return False
         return True

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Query
 
@@ -83,7 +81,19 @@ base_model = declarative_base(cls=Model, name='Model')
 
 base_model.query = _QueryProperty(base_model)
 
+class SwitchEngine(object):
 
+    def __init__(self, eg):
+        self.eg = eg
+        self.origin_eg = None
+
+    def __enter__(self):
+        self.origin_eg = base_model.metadata.bind
+        base_model.metadata.bind = self.eg
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        base_model.metadata.bind = self.origin_eg
+        self.origin_eg = None
 
 
 
@@ -116,24 +126,6 @@ def init_db(project_name, project_version):
     base_model.metadata.drop_all()
     base_model.metadata.create_all()
 
-_current_project_name = None
-_current_project_version = None
-
-def change_session(project_name, project_version):
-    global _current_project_name, _current_project_version
-
-    if project_name != _current_project_name or project_version != _current_project_version:
-        eg = get_engine(project_name, project_version)
-        base_model.metadata.bind = eg
-
-        _current_project_name = project_name
-        _current_project_version = _current_project_version
-
-        from dbcache import treecache, filecache, symbolcache
-
-        tree_id = treecache.get_treeid(project_name, project_version)
-        symbolcache.load(tree_id)
-        filecache.load(tree_id)
 
 
 def create_session_from_bind(bind):
@@ -143,31 +135,6 @@ def create_session_from_bind(bind):
     return session
 
 
-class TreeQuery(BaseQuery):
-
-    @cached
-    def get_treeid(self, name, version):
-        rv = self.filter(Tree.name==name, Tree.version==version).first()
-        if rv is None:
-            rv = Tree(name, version)
-            session = create_session(name, version)
-            session.add(rv)
-            session.commit()
-        return rv.id
-    
-
-class Tree(base_model):
-    __tablename__ = 'src_tree'
-
-    query_class = TreeQuery
-    
-    id = Column(Integer, nullable=False, autoincrement=True, primary_key=True)
-    name = Column(String(64), nullable=False)
-    version = Column(String(64), nullable=False)
-
-    def __init__(self, name, version):
-        self.name = name
-        self.version = version
         
     
 class Definitions(base_model):
@@ -215,22 +182,22 @@ class LangType(base_model):
 class SymbolQuery(BaseQuery):
 
     @cached
-    def get_by_name(self, treeid, name):
-        return self.filter(Symbol.symname==name, Symbol.treeid==treeid).first()
+    def get_by_name(self, name):
+        return self.filter(Symbol.symname==name).first()
 
     @cached
-    def get_symid(self, treeid, name):
-        rv = self.filter(Symbol.symname==name, Symbol.treeid==treeid).first()
+    def get_symid(self, name):
+        rv = self.filter(Symbol.symname==name).first()
         if rv is None:
             return None
         return rv.symid
     
 
     @cached
-    def get_or_create(self, treeid, name):
-        rv = self.filter(Symbol.symname==name, Symbol.treeid==treeid).first()
+    def get_or_create(self, name):
+        rv = self.filter(Symbol.symname==name).first()
         if rv is None:
-            rv = Symbol(treeid, name)
+            rv = Symbol(name)
             self.session.add(rv)
             self.session.commit()
         return rv
@@ -244,11 +211,9 @@ class Symbol(base_model):
     query_class = SymbolQuery
     
     symid = Column(Integer, nullable=False, primary_key=True)
-    treeid = Column(Integer, nullable=False)
     symname = Column(String(255), nullable=False)
 
-    def __init__(self, treeid, symname, symid=1):
-        self.treeid = treeid
+    def __init__(self, symname, symid=1):
         self.symname = symname
         self.symid = symid 
 
@@ -265,10 +230,10 @@ class Symbol(base_model):
 class FileQuery(BaseQuery):
 
     @cached
-    def get_or_create(self, treeid, filename):
-        rv = self.filter(File.treeid==treeid, File.filename==filename).first()
+    def get_or_create(self, filename):
+        rv = self.filter(File.filename==filename).first()
         if rv is None:
-            rv = File(treeid, filename)
+            rv = File(filename)
             self.session.add(rv)
             self.session.commit()
         return rv
@@ -281,7 +246,6 @@ class File(base_model):
     
     fileid = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
 
-    treeid = Column(Integer, nullable=False)
     filename = Column(String(256), nullable=False)
     filetype = Column(String(16), nullable=True)
     # 1 表是index 2 表示ref
@@ -289,8 +253,7 @@ class File(base_model):
     indexed_at = Column(DateTime, nullable=True)
     refered_at = Column(DateTime, nullable=True)
     
-    def __init__(self, treeid, filename):
-        self.treeid = treeid
+    def __init__(self, filename):
         self.filename = filename
 
     def set_indexed(self):

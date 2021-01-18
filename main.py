@@ -16,8 +16,8 @@ from files import Files
 
 import conf
 
-from models import Symbol, Ref, Definitions
-
+from models import Symbol, Ref, Definitions, SwitchEngine, get_engine
+from dbcache import langcache, filecache, symbolcache
 
 # localhost:8888  chrome 测试时，port=8888会访问不了静态文件。
 
@@ -36,8 +36,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.reqfile = None
         self.tree = None
         self.files = None
-        self.tree_id = None
-        self.version = ''
+        self.project_version = ''
         self.detail = {}
         self.detail['trees'] = self.get_all_trees()
         self.detail['pages'] = {
@@ -62,8 +61,6 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 
-    def get_swish_search(self, search_text):
-        return []
 
 
     def _identfile(self, filename):
@@ -75,30 +72,28 @@ class MainHandler(tornado.web.RequestHandler):
             self.tree['name'], filename, line, line)
 
     def return_ident_page(self):
-        from dbcache import treecache, langcache, filecache, symbolcache
+
 
         ident = self.get_argument('_i', '')
 
-        symid = symbolcache.get_symid(self.tree_id, ident)
-        if symid is None:
-            symbolcache.load(self.tree_id)
-            symid = symbolcache.get_symid(self.tree_id, ident)
+        symid = symbolcache.get_symid(self.project_name, self.project_version, ident)
         if not symid:
             defs = []
             refs = {}
         else:
-            objs = Definitions.query.filter(Definitions.symid==symid).all()
+            with SwitchEngine(get_engine(self.project_name, self.project_version)):
+                objs = Definitions.query.filter(Definitions.symid==symid).all()
             defs = []
             for o in objs:
-                lang, desc = langcache.get_lang_desc(o.typeid)
-                if lang is None and desc is None:
-                    langcache.load()
-                lang, desc = langcache.get_lang_desc(o.typeid)
+                lang, desc = langcache.get_lang_desc(self.project_name,
+                                                     self.project_version,
+                                                     o.typeid)
 
-                treeid, filename = filecache.get_treeid_filename(o.fileid)
-                if treeid is None and filename is None:
-                    filecache.load(self.tree_id)
-                    treeid, filename = filecache.get_treeid_filename(o.fileid)
+
+                filename = filecache.get_filename(self.project_name,
+                                                         self.project_version,
+                                                         o.fileid)
+
                 defs.append(
                     (desc,
                      self._identfile(filename),
@@ -106,14 +101,12 @@ class MainHandler(tornado.web.RequestHandler):
                     )
                 )
 
-            objs = Ref.query.filter(Ref.symid==symid).all()
+            with SwitchEngine(get_engine(self.project_name, self.project_version)):
+                objs = Ref.query.filter(Ref.symid==symid).all()
             refs = {}
             for o in objs:
 
-                treeid, filename = filecache.get_treeid_filename(o.fileid)
-                if treeid is None and filename is None:
-                    filecache.load(self.tree_id)
-                    treeid, filename = filecache.get_treeid_filename(o.fileid)
+                filename = filecache.get_filename(self.project_name, self.project_version, o.fileid)
                 item = (self._identfile(filename), self._identline(filename, o.line))
                 if o.fileid in refs:
                     refs[o.fileid].append(item)
@@ -126,7 +119,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("ident.html", **self.detail)
 
     def _calc_dir_content(self):
-        dirs, files = self.files.getdir(self.reqfile, self.version)
+        dirs, files = self.files.getdir(self.reqfile, self.project_version)
         if not dirs and not files:
             return '''<p class="error">\n<i>The directory /%s does not exist, is empty or is hidden by an exclusion rule.</i>\n</p>\n''' % self.reqfile
 
@@ -196,13 +189,13 @@ class MainHandler(tornado.web.RequestHandler):
         else:
             parse = None
         if parse:
-            parse.parse_file(self.reqfile, self.version)
+            parse.parse_file(self.reqfile, self.project_version)
             return parse.out()
         return self._calc_raw_file()
 
     def _calc_raw_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.version)
+        fp = self.files.getfp(self.reqfile, self.project_version)
         lineno = 0
         for li in fp:
             lineno += 1
@@ -213,14 +206,14 @@ class MainHandler(tornado.web.RequestHandler):
 
     def _calc_text_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.version)
+        fp = self.files.getfp(self.reqfile, self.project_version)
         html += fp.read()
         fp.close()
         html += '''</pre>'''
         return html
 
     def _calc_html_file(self):
-        fp = self.files.getfp(self.reqfile, self.version)
+        fp = self.files.getfp(self.reqfile, self.project_version)
         html = fp.read()
         fp.close()
         return html
@@ -228,9 +221,9 @@ class MainHandler(tornado.web.RequestHandler):
     def _calc_source_content(self):
         if self.get_argument('raw', None) == '1':
             return self._calc_text_file()
-        if self.files.isdir(self.reqfile, self.version):
+        if self.files.isdir(self.reqfile, self.project_version):
             return self._calc_dir_content()
-        elif self.files.parseable(self.reqfile, self.version):
+        elif self.files.parseable(self.reqfile, self.project_version):
             return self._calc_code_file()
         elif self.reqfile.lower().endswith('html'):
             return self._calc_html_file()
@@ -245,7 +238,7 @@ class MainHandler(tornado.web.RequestHandler):
         # TODO general search page
         self.detail['filetext'] = self.get_argument('filetext', '')
         self.detail['searchtext'] = self.get_argument('searchtext', '')
-        self.detail['results'] = self.get_swish_search('')
+        self.detail['results'] = []
         self.detail['advancedchecked'] = self.get_argument('advancedchecked', '')
         self.detail['casesensitivechecked'] = self.get_argument('casesensitivechecked', '')
         self.render("search.html", **self.detail)
@@ -274,7 +267,6 @@ class MainHandler(tornado.web.RequestHandler):
         args[0] 'search', 'ident', 'source'
         args[1] treename
         '''
-        from models import change_session
 
         if len(args) <= 1:
             self.page = 'index'
@@ -288,17 +280,10 @@ class MainHandler(tornado.web.RequestHandler):
 
 
         self.tree = conf.trees.get(args[1])
-        self.version = self.tree['version']
-
-        change_session(self.tree['name'], self.version)
-
-        from dbcache import treecache
-
-        self.tree_id = treecache.get_treeid(self.tree['name'], self.tree['version'])
+        self.project_name = self.tree['name']
+        self.project_version = self.tree['version']
 
         self.files = Files(conf.trees.get(args[1]))
-
-
 
         if len(args) >= 3:
             self.reqfile = args[2] or '/'

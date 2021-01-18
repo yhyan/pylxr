@@ -6,10 +6,9 @@ import six
 text_factory = str
 
 import os
-import subprocess
 
 from files import Files
-from models import Tree, File, Symbol, LangType, Definitions, Ref, init_db, create_session
+from models import File, Symbol, LangType, Definitions, Ref, init_db, create_session
 from ctags import ctags
 
 
@@ -17,24 +16,26 @@ from ctags import ctags
 class Genxref(object):
 
 
-    def __init__(self, config, tree):
+    def __init__(self, config, tree, version):
         self.files = Files(tree)
         self.filestype = {}
         self.tree = tree
+        self.project_name = tree['name']
+        self.project_version = version
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
         self.config = config
 
 
 
-    def main(self, version):
-        init_db(tree['name'], version)
+    def main(self):
+        version = self.project_version
 
-        self.session = create_session(tree['name'], version)
+        self.session = create_session(self.project_name, version)
 
-        self.symid = Symbol.next_symid()
+        self.symid = 1 # Symbol.next_symid()
 
-        self.init_tree()
+
         self.init_lang()
         self.pathname_to_obj = {}
         
@@ -46,18 +47,9 @@ class Genxref(object):
         self.symref('/', version)
 
 
-    def init_tree(self):
-        from dbcache import treecache
-
-        self.treeid = treecache.get_treeid(self.tree['name'], tree['version'])
-        if self.treeid is None:
-            self.treeid = Tree.query.get_treeid(tree['name'], tree['version'])
-            assert self.treeid is not None
-            treecache.load()
 
 
     def init_lang(self):
-        from dbcache import langcache
         from simpleparse import parses
 
         self.parses = {}
@@ -68,11 +60,10 @@ class Genxref(object):
             for desc in v.typemap.values():
                 assert LangType.query.get_or_create(k, desc) is not None
         print(self.parses)
-        langcache.load()
+
         
 
     def init_files(self, pathname, version):
-        from dbcache import filecache
 
         _files = [(pathname, version)]
         
@@ -84,15 +75,15 @@ class Genxref(object):
                 for i in dirs + files:
                     _files.append((os.path.join(pathname, i), version))
             else:
-                f = File(self.treeid, pathname)
+                f = File(pathname)
                 f.filetype = self.files.gettype(pathname, version)
                 self.session.add(f)
                 self.pathname_to_obj[pathname] = f
         self.session.commit()
-        filecache.load(self.treeid)
+
 
     def symbols(self, pathname, version):
-        from dbcache import langcache, symbolcache
+        from dbcache import langcache
 
         total_commit = 0
         _files = [(pathname, version)]
@@ -108,8 +99,11 @@ class Genxref(object):
                     tags = ctags(self.files.toreal(pathname, version), o.filetype)
                     for tag in tags:
                         sym, line, lang_type, ext = tag
-                        lang_typeid = langcache.get_typeid(o.filetype, self.parses[o.filetype].typemap[lang_type])
-                        symbol_obj = Symbol(self.treeid, sym, self.symid)
+                        lang_typeid = langcache.get_typeid(
+                            self.project_name,
+                            self.project_version,
+                            o.filetype, self.parses[o.filetype].typemap[lang_type])
+                        symbol_obj = Symbol(sym, self.symid)
                         defin = Definitions(self.symid, o.fileid, line, lang_typeid)
                         self.session.add(symbol_obj)
                         self.session.add(defin)
@@ -121,9 +115,9 @@ class Genxref(object):
                         print(total_commit)
                         self.session.commit()
         self.session.commit()
+        print(total_commit)
         print()
-        print()
-        symbolcache.load(self.treeid)
+
         
 
     def symref(self, pathname, version):
@@ -144,7 +138,7 @@ class Genxref(object):
                         _buf = _fp.read()
                     words = self.parses[o.filetype].get_idents(_buf)
                     for word, line in words:
-                        _symid = symbolcache.get_symid(self.treeid, word)
+                        _symid = symbolcache.get_symid(self.project_name, self.project_version, word)
                         if _symid is None:
                             continue
                         ref = Ref(_symid, o.fileid, line)
@@ -181,6 +175,6 @@ if __name__ == "__main__":
     if version not in tree['versions']:
         version = tree['version']
     init_db(tree['name'], version)
-    g = Genxref(config, tree)
-    g.main(version)
+    g = Genxref(config, tree, version)
+    g.main()
     
