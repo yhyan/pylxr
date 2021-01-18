@@ -17,8 +17,8 @@ from files import Files
 import conf
 
 from models import Symbol, Ref, Definitions, SwitchEngine, get_engine
-from dbcache import langcache, filecache, symbolcache
-
+from dbcache import filecache, symbolcache
+from langtype import LangType
 # localhost:8888  chrome 测试时，port=8888会访问不了静态文件。
 
 define("port", default=9999, help="run on the given port", type=int)
@@ -85,9 +85,7 @@ class MainHandler(tornado.web.RequestHandler):
                 objs = Definitions.query.filter(Definitions.symid==symid).all()
             defs = []
             for o in objs:
-                lang, desc = langcache.get_lang_desc(self.project_name,
-                                                     self.project_version,
-                                                     o.typeid)
+                lang, desc = LangType.format_lang_type(o.typeid)
 
 
                 filename = filecache.get_filename(self.project_name,
@@ -177,15 +175,15 @@ class MainHandler(tornado.web.RequestHandler):
         from simpleparse import PythonParse, CParse, CPPParse, GOParse
 
         if self.reqfile.lower().endswith(".py"):
-            parse = PythonParse(conf.config, self.tree)
+            parse = PythonParse(self.tree)
         elif self.reqfile.lower().endswith(".c"):
-            parse = CParse(conf.config, self.tree)
+            parse = CParse(self.tree)
         elif self.reqfile.lower().endswith(".cpp"):
-            parse = CPPParse(conf.config, self.tree)
+            parse = CPPParse(self.tree)
         elif self.reqfile.lower().endswith(".h"):
-            parse = CPPParse(conf.config, self.tree)
+            parse = CPPParse(self.tree)
         elif self.reqfile.lower().endswith('.go'):
-            parse = GOParse(conf.config, self.tree)
+            parse = GOParse(self.tree)
         else:
             parse = None
         if parse:

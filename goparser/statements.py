@@ -3,6 +3,7 @@
 "statements.py -- top-level statement parser for golang"
 
 import collections
+from langtype import LangType
 
 IGNORE = {'COMMENT1', 'COMMENTN', 'ENDL', 'WS', ' '}
 
@@ -91,7 +92,7 @@ class StatementFinder:
                     print('func', tokens[name_index].value, tokens[name_index].lineno)
                 tags.append((tokens[name_index].value,
                              tokens[name_index].lineno,
-                             'f','',
+                             LangType.lang_go + LangType.def_func,
                              ))
                 continue
             elif tok.type == 'kw_type':
@@ -101,7 +102,7 @@ class StatementFinder:
                     print('type', tokens[name_index].value, tokens[name_index].lineno)
                 tags.append((tokens[name_index].value,
                              tokens[name_index].lineno,
-                             'm',''
+                             LangType.lang_go + LangType.def_struct,
                              ))
                 continue
             elif tok.type == 'kw_var':

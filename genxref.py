@@ -8,15 +8,16 @@ text_factory = str
 import os
 
 from files import Files
-from models import File, Symbol, LangType, Definitions, Ref, init_db, create_session
-from ctags import ctags
+from models import File, Symbol, Definitions, Ref, init_db, create_session
+from tags.base import find_tags
+
 
 
 
 class Genxref(object):
 
 
-    def __init__(self, config, tree, version):
+    def __init__(self, tree, version):
         self.files = Files(tree)
         self.filestype = {}
         self.tree = tree
@@ -24,7 +25,7 @@ class Genxref(object):
         self.project_version = version
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
-        self.config = config
+
 
 
 
@@ -54,11 +55,8 @@ class Genxref(object):
 
         self.parses = {}
         for k, v in parses.items():
-            self.parses[k] = v(self.config, self.tree)
+            self.parses[k] = v(self.tree)
 
-            assert LangType.query.get_or_create(k, '') is not None
-            for desc in v.typemap.values():
-                assert LangType.query.get_or_create(k, desc) is not None
         print(self.parses)
 
         
@@ -83,7 +81,6 @@ class Genxref(object):
 
 
     def symbols(self, pathname, version):
-        from dbcache import langcache
 
         total_commit = 0
         _files = [(pathname, version)]
@@ -96,13 +93,9 @@ class Genxref(object):
             else:
                 o = self.pathname_to_obj[pathname]
                 if o.filetype in self.parses and not o.has_indexed():
-                    tags = ctags(self.files.toreal(pathname, version), o.filetype)
+                    tags = find_tags(self.files.toreal(pathname, version), o.filetype)
                     for tag in tags:
-                        sym, line, lang_type, ext = tag
-                        lang_typeid = langcache.get_typeid(
-                            self.project_name,
-                            self.project_version,
-                            o.filetype, self.parses[o.filetype].typemap[lang_type])
+                        sym, line, lang_typeid = tag
                         symbol_obj = Symbol(sym, self.symid)
                         defin = Definitions(self.symid, o.fileid, line, lang_typeid)
                         self.session.add(symbol_obj)
@@ -162,7 +155,7 @@ class Genxref(object):
 
                     
 if __name__ == "__main__":
-    from conf import config, trees
+    from conf import  trees
     import sys
 
     treename = sys.argv[1]
@@ -175,6 +168,6 @@ if __name__ == "__main__":
     if version not in tree['versions']:
         version = tree['version']
     init_db(tree['name'], version)
-    g = Genxref(config, tree, version)
+    g = Genxref(tree, version)
     g.main()
     

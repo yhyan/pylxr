@@ -20,7 +20,7 @@ except ImportError as e:
     is_debug_mode = False
 
     # tornado cookie secret
-    cookie_secret = '__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__'
+    cookie_secret = 'TODO:set your cookie secret'
 
     trees = {
         # for debug
@@ -33,24 +33,5 @@ except ImportError as e:
             'display': True,
         },
     }
-
-
-config = {
-    'swishbin': "/usr/bin/swish-e", # Popen(["which", "swish-e"], stdout=PIPE).communicate()[0].rstrip(),
-    'swishconf': os.path.join(template_dir, 'swish-e.conf'),
-    'swishdirbase': index_dir,
-
-    'ectagsbin': '/usr/bin/ctags', # Popen(["which", "ctags"], stdout=PIPE).communicate()[0].rstrip(),
-    'ectagsopts': ' '.join(['--c-types=+plx',
-                            '--eiffel-types=+l',
-                            '--fortran-types=+L']),
-
-    'virtroot': '/lxr',
-
-    'dbhost': '',
-    'dbuser': '',
-    'dbpass': '',
-    'dbname': '',
-}
 
 

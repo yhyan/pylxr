@@ -3,7 +3,7 @@
 "statements.py -- top-level statement parser for c & cpp"
 
 import collections
-
+from langtype import LangType
 
 develop_debug = False
 
@@ -150,7 +150,7 @@ class StatementFinder:
                         print('type', tokens[name_index].value, tokens[name_index].lineno)
                     tags.append((tokens[name_index].value,
                                  tokens[name_index].lineno,
-                                 'm',''
+                                 LangType.lang_c + LangType.def_struct
                                  ))
                     continue
 
@@ -166,7 +166,7 @@ class StatementFinder:
                         print('func', tokens[name_index].value, tokens[name_index].lineno)
                     tags.append((tokens[name_index].value,
                                  tokens[name_index].lineno,
-                                 'f','',
+                                 LangType.lang_c + LangType.def_func
                                  ))
                     continue
             i += 1

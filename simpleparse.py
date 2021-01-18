@@ -25,8 +25,7 @@ def find_escape_char(s, right, left):
 
 class SimpleParse(object):
 
-    def __init__(self, config, tree):
-        self.config = config
+    def __init__(self, tree):
         self.tree = tree
         self.project_name = tree['name']
         self.project_version = tree['version']
@@ -236,16 +235,9 @@ class PythonParse(SimpleParse):
         {'open': "\\bfrom\\b", 'close': '\n', 'type': 'include'}
     ]
 
-    typemap = {
-        'c': 'class',
-        'f': 'function',
-        'i': 'import',
-        'm': 'class member',
-        'v': 'variable'
-    }
 
-    def __init__(self, config, tree):
-        super(PythonParse, self).__init__(config, tree)
+    def __init__(self, tree):
+        super(PythonParse, self).__init__(tree)
 
     def _parse_code(self, frag):
         ss = self.identdef.split(frag)
@@ -330,23 +322,6 @@ class CParse(SimpleParse):
         {"open": '#include', "close": '\n', "type": "include"}
     ]
 
-    typemap = {
-        'c': 'class',
-        'd': 'macro (un)definition',
-        'e': 'enumerator',
-        'f': 'function definition',
-        'g': 'enumeration name',
-        'i': 'interface',
-        'l': 'local variable',
-        'm': 'class, struct, or union member',
-        'n': 'namespace',
-        'p': 'function prototype or declaration',
-        's': 'structure name',
-        't': 'typedef',
-        'u': 'union name',
-        'v': 'variable definition',
-        'x': 'extern or forward variable declaration'
-    }
 
     def _parse_include(self, frag):
         ss = self.blankre.split(frag)
@@ -436,23 +411,7 @@ class CPPParse(SimpleParse):
         {"open": '#include', "close": '\n', "type": "include"}
     ]
 
-    typemap = {
-        'c': 'class',
-        'd': 'macro (un)definition',
-        'e': 'enumerator',
-        'f': 'function definition',
-        'g': 'enumeration name',
-        'i': 'interface',
-        'l': 'local variable',
-        'm': 'class, struct, or union member',
-        'n': 'namespace',
-        'p': 'function prototype or declaration',
-        's': 'structure name',
-        't': 'typedef',
-        'u': 'union name',
-        'v': 'variable definition',
-        'x': 'extern or forward variable declaration'
-    }
+
 
     def _parse_include(self, frag):
         ss = self.blankre.split(frag)
@@ -534,23 +493,7 @@ class GOParse(SimpleParse):
         # {"open": '#pa', "close": '\n', "type": "include"}
     ]
 
-    typemap = {
-        'c': 'class',
-        'd': 'macro (un)definition',
-        'e': 'enumerator',
-        'f': 'function definition',
-        'g': 'enumeration name',
-        'i': 'interface',
-        'l': 'local variable',
-        'm': 'class, struct, or union member',
-        'n': 'namespace',
-        'p': 'function prototype or declaration',
-        's': 'structure name',
-        't': 'typedef',
-        'u': 'union name',
-        'v': 'variable definition',
-        'x': 'extern or forward variable declaration'
-    }
+
 
     def _parse_code(self, frag):
         ss = self.identdef.split(frag)
@@ -584,12 +527,12 @@ parses = {
 
 
 if __name__ == "__main__":
-    from conf import config, trees
+    from conf import trees
     for filename in sys.argv[1:]:
         fp = open(filename)
         buf = fp.read()
         fp.close()
-        parse = PythonParse(config, trees['redispy'])
+        parse = PythonParse(trees['redispy'])
         parse.parse(buf)
 
 

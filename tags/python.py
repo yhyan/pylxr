@@ -4,6 +4,7 @@
 import ast
 import os
 
+from langtype import LangType
 
 def visit_class(class_node):
     tags = []
@@ -11,7 +12,7 @@ def visit_class(class_node):
         node_type = node.__class__.__name__
         if node_type in ('AsyncFunctionDef', 'FunctionDef'):
             if node.name[0] != '_':
-                tags.append([node.name, node.lineno, 'f', ''])
+                tags.append([node.name, node.lineno, LangType.lang_py + LangType.def_func])
     return tags
 
 def find_tags(abspath):
@@ -35,9 +36,9 @@ def find_tags(abspath):
         for node in mod.body:
             node_type = node.__class__.__name__
             if node_type in ('AsyncFunctionDef', 'FunctionDef'):
-                tags.append([node.name, node.lineno, 'f', ''])
+                tags.append([node.name, node.lineno, LangType.lang_py + LangType.def_func])
             elif node_type in ('ClassDef', ):
-                tags.append([node.name, node.lineno, 'f', ''])
+                tags.append([node.name, node.lineno, LangType.lang_py + LangType.def_class])
                 tags += visit_class(node)
             elif node_type in ('AnnAssign', 'Assign', 'AugAssign'):
                 pass

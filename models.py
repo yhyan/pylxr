@@ -153,31 +153,6 @@ class Definitions(base_model):
         self.typeid = typeid
 
 
-class LangTypeQuery(BaseQuery):
-
-    @cached
-    def get_or_create(self, lang, desc):
-        rv = self.filter(LangType.lang == lang, LangType.desc == desc).first()
-        if rv is None:
-            rv = LangType(lang, desc)
-            self.session.add(rv)
-            self.session.commit()
-        return rv
-    
-        
-class LangType(base_model):
-    __tablename__ = 'src_langtype'
-
-    query_class = LangTypeQuery
-    
-    typeid = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
-    lang = Column(String(64), nullable=False)
-    desc = Column(String(128), nullable=False, default='')
-
-    def __init__(self, lang, desc):
-        self.lang = lang
-        self.desc = desc
-
 
 class SymbolQuery(BaseQuery):
 
