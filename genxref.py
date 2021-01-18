@@ -128,8 +128,10 @@ class Genxref(object):
                         _symid = symbolcache.get_symid(self.project_name, self.project_version, word)
                         if _symid is None:
                             continue
-                        if o.filetype != self.sym_filetype.get(_symid):
+
+                        if not self.files.is_same_filetype(o.filetype, self.sym_filetype.get(_symid)):
                             continue
+
                         ref = Ref(_symid, o.fileid, line)
                         self.session.add(ref)
                         total_commit += 1

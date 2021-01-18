@@ -66,7 +66,14 @@ class Files(object):
         if self.istext(pathname, releaseid):
             return 'text'
         return 'bin'
-        
+
+    def is_same_filetype(self, a, b):
+        if a == b:
+            return True
+        if a in ('c', 'c++') and b in ('c', 'c++'):
+            return True
+        return False
+
 
     def parseable(self, pathname, releaseid):
         ftype = self.gettype(pathname, releaseid)
