@@ -157,14 +157,9 @@ if __name__ == "__main__":
     import sys
 
     treename = sys.argv[1]
-    if len(sys.argv) >= 3:
-        version = sys.argv[2]
-    else:
-        version = None
 
     tree = trees[treename]
-    if version not in tree['versions']:
-        version = tree['version']
+    version = tree['version']
     init_db(tree['name'], version)
     g = Genxref(tree, version)
     g.main()

@@ -96,11 +96,25 @@ def find_func_name(tokens, start):
     return id_index, rbrace_index+1
 
 
-
-def find_struct_type_name(tokens, start):
-    id_index = expect_token(tokens, start+1, 'ID')
+def find_struct_typedef_name(tokens, start):
+    # typedef struct { type1 field1; type2 field2; } name;
+    lbrace_index = expect_token(tokens, start+1, 'LBRACE')
+    if lbrace_index == -1:
+        return None, None
+    rbrack_index = goto_until_bracket(tokens, lbrace_index, '{')
+    if rbrack_index == -1:
+        return None, None
+    id_index = expect_token(tokens, rbrack_index+1, 'ID')
     if id_index == -1:
         return None, None
+    return id_index, id_index + 1
+
+def find_struct_type_name(tokens, start):
+    # struct name { type1 field1; type2 field2;};
+    id_index = expect_token(tokens, start+1, 'ID')
+    if id_index == -1:
+        return find_struct_typedef_name(tokens, start)
+
     lbrace_index = expect_token(tokens, id_index+1, 'LBRACE')
     if lbrace_index == -1:
         return None, None
@@ -140,7 +154,7 @@ class StatementFinder:
 
         while i < max_length:
             tok = tokens[i]
-            if tok.type == 'STRUCT':
+            if tok.type in ( 'STRUCT', 'ENUM',):
                 name_index, next_index = find_struct_type_name(tokens, i)
                 debug_token_type(tokens, i)
                 if name_index is not None:

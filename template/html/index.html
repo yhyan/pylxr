@@ -7,7 +7,7 @@
     <h1>Please select one of the following trees:</h1>
     <ul>
       {% for tree in trees %}
-      <li><em>{{tree['name']}}</em>: <a href="/source/{{tree['name']}}">{{tree['desc']}}</a></li>
+      <li><em>{{tree['name']}}</em>: <a href="/source/{{tree['name']}}">{{tree['name']}}</a></li>
       {% end %}
     </ul>
   </body>

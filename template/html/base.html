@@ -64,9 +64,7 @@
 	  <p class="compact">
 	    &nbsp;<label>Version:
 	      <select name="!v">
-		{% for version in tree['versions'] %}
-		<option class="var-sel" selected>{{version}}</option>
-		{% end %}
+		<option class="var-sel" selected>{{tree['version']}}</option>
 	      </select>
 	    </label>
 	    <button type="reset">Revert</button>&nbsp;&nbsp;
