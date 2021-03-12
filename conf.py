@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-from subprocess import Popen, PIPE
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 template_dir = os.path.join(current_dir, 'template')

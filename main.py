@@ -197,6 +197,7 @@ class MainHandler(tornado.web.RequestHandler):
         lineno = 0
         for li in fp:
             lineno += 1
+            li = li.replace('<', '&lt;').replace('>', '&gt;')
             html += '''<a class='fline' name="%04d">%04d</a> %s''' % (lineno, lineno, li)
         fp.close()
         html += '''</pre>'''
@@ -276,7 +277,6 @@ class MainHandler(tornado.web.RequestHandler):
             self.return_index_page()
             return
 
-
         self.tree = conf.trees.get(args[1])
         self.project_name = self.tree['name']
         self.project_version = self.tree['version']
@@ -317,7 +317,7 @@ def main():
     mapping = [
         (r"/static/(.+)", tornado.web.StaticFileHandler, dict(path=settings['static_path'])),
         (r"/icons/(.+)", tornado.web.StaticFileHandler, dict(path=settings['static_path']+"/icons/")),
-        (r"/(\w+)/(\w+)(/.*)?", MainHandler),
+        (r"/(\w+)/([\w|\-|\.]+)(/.*)?", MainHandler),
         (r"/", MainHandler),
     ]
     app = tornado.web.Application(
@@ -326,6 +326,10 @@ def main():
 
     http_server = httpserver.HTTPServer(app)
     http_server.listen(options.port)
+
+    if is_debug_mode:
+        print('start localhost:%s' % options.port)
+
     tornado.ioloop.IOLoop.current().start()
 
 

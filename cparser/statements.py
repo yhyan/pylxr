@@ -124,6 +124,17 @@ def find_struct_type_name(tokens, start):
 
     return id_index, rbrack_index + 1
 
+def find_define_name(tokens, start):
+    define_index = expect_token(tokens, start+1, 'DEFINE')
+    if define_index == -1:
+        return None, None
+
+    id_index = expect_token(tokens, define_index + 1, 'ID')
+    if id_index == -1:
+        return None, None
+    return id_index, id_index + 1
+
+
 
 def debug_token_type(tokens, i):
     if not develop_debug:
@@ -183,6 +194,15 @@ class StatementFinder:
                                  LangType.lang_c + LangType.def_func
                                  ))
                     continue
+            elif tok.type == 'DIRE':  #
+                name_index, next_index = find_define_name(tokens,i)
+                if name_index is not None:
+                    i = next_index
+                    if develop_debug:
+                        print('#define', tokens[name_index].value, tokens[name_index].lineno)
+                    tags.append((tokens[name_index].value,
+                                 tokens[name_index].lineno,
+                                 LangType.lang_c + LangType.def_define))
             i += 1
         return tags
 

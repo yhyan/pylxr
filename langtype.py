@@ -8,7 +8,7 @@ class LangType(object):
     def_func = 1
     def_class = 2
     def_struct = 3
-
+    def_define = 4
 
     @classmethod
     def format_lang_type(cls, i):
@@ -24,6 +24,8 @@ class LangType(object):
             def_ = 'class'
         elif def_type == 3:
             def_ = 'struct'
+        elif def_type == 4:
+            def_ = 'define'
         return lang, def_
 
 
