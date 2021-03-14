@@ -103,10 +103,10 @@ from conf import index_dir
 
 _eg_cache = {}
 
-def get_engine(project_name, project_version):
+def get_engine(project_name):
     global _eg_cache
 
-    db_name = '%s.%s.sqlite3' % (project_name, project_version)
+    db_name = '%s.sqlite3' % (project_name)
     db_path = os.path.join(index_dir, db_name)
     db_uri = 'sqlite:///' + db_path
     eg = create_engine(db_uri, echo=False)
@@ -114,14 +114,14 @@ def get_engine(project_name, project_version):
         _eg_cache[db_name] = eg
     return eg
 
-def create_session(project_name, project_version):
+def create_session(project_name):
     session = Session(autocommit=False, autoflush=False,
                      expire_on_commit=False,
-                     bind=get_engine(project_name, project_version))
+                     bind=get_engine(project_name))
     return session
 
-def init_db(project_name, project_version):
-    eg = get_engine(project_name, project_version)
+def init_db(project_name):
+    eg = get_engine(project_name)
     base_model.metadata.bind = eg
     base_model.metadata.drop_all()
     base_model.metadata.create_all()

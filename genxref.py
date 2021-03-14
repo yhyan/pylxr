@@ -14,12 +14,11 @@ from tags.base import find_tags
 class Genxref(object):
 
 
-    def __init__(self, tree, version):
-        self.files = Files(tree)
+    def __init__(self, project_name, project_path):
+        self.files = Files(project_path)
         self.filestype = {}
-        self.tree = tree
-        self.project_name = tree['name']
-        self.project_version = version
+        self.project_name = project_name
+        self.project_path = project_path
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
 
@@ -27,9 +26,8 @@ class Genxref(object):
 
 
     def main(self):
-        version = self.project_version
 
-        self.session = create_session(self.project_name, version)
+        self.session = create_session(self.project_name)
 
         self.symid = 1 # Symbol.next_symid()
 
@@ -39,54 +37,54 @@ class Genxref(object):
 
         self.parses = {}
         for k, v in parses.items():
-            self.parses[k] = v(self.tree)
+            self.parses[k] = v(self.project_name, self.project_path)
 
         print(self.parses)
 
         self.pathname_to_obj = {}
         
-        self.init_files('/', version)
+        self.init_files('/')
 
         # ctags 符号
-        self.symbols('/', version)
+        self.symbols('/')
         # sym ref
-        self.symref('/', version)
+        self.symref('/')
 
 
 
-    def init_files(self, pathname, version):
+    def init_files(self, pathname):
 
-        _files = [(pathname, version)]
+        _files = [pathname]
         
         while _files:
-            pathname, version = _files.pop(0)
+            pathname = _files.pop(0)
 
-            if self.files.isdir(pathname, version):            
-                dirs, files = self.files.getdir(pathname, version)
+            if self.files.isdir(pathname):
+                dirs, files = self.files.getdir(pathname)
                 for i in dirs + files:
-                    _files.append((os.path.join(pathname, i), version))
+                    _files.append(os.path.join(pathname, i))
             else:
                 f = File(pathname)
-                f.filetype = self.files.gettype(pathname, version)
+                f.filetype = self.files.gettype(pathname)
                 self.session.add(f)
                 self.pathname_to_obj[pathname] = f
         self.session.commit()
 
 
-    def symbols(self, pathname, version):
+    def symbols(self, pathname):
 
         total_commit = 0
-        _files = [(pathname, version)]
+        _files = [pathname]
         while _files:
-            pathname, version = _files.pop(0)
-            if self.files.isdir(pathname, version):
-                dirs, files = self.files.getdir(pathname, version)
+            pathname = _files.pop(0)
+            if self.files.isdir(pathname):
+                dirs, files = self.files.getdir(pathname)
                 for i in dirs + files:
-                    _files.append((os.path.join(pathname, i), version))
+                    _files.append(os.path.join(pathname, i))
             else:
                 o = self.pathname_to_obj[pathname]
                 if o.filetype in self.parses and not o.has_indexed():
-                    tags = find_tags(self.files.toreal(pathname, version), o.filetype)
+                    tags = find_tags(self.files.toreal(pathname), o.filetype)
                     for tag in tags:
                         sym, line, lang_typeid = tag
                         symbol_obj = Symbol(sym, self.symid)
@@ -107,25 +105,25 @@ class Genxref(object):
 
         
 
-    def symref(self, pathname, version):
+    def symref(self, pathname):
         from dbcache import symbolcache
 
         total_commit = 0
-        _files = [(pathname, version)]
+        _files = [pathname]
         while _files:
-            pathname, version = _files.pop(0)
-            if self.files.isdir(pathname, version):
-                dirs, files = self.files.getdir(pathname, version)
+            pathname = _files.pop(0)
+            if self.files.isdir(pathname):
+                dirs, files = self.files.getdir(pathname)
                 for i in dirs + files:
-                    _files.append((os.path.join(pathname, i), version))
+                    _files.append(os.path.join(pathname, i))
             else:
                 o = self.pathname_to_obj[pathname]
                 if o.filetype in self.parses and not o.has_refered():
-                    with open(self.files.toreal(pathname, version), encoding="utf8", errors='ignore') as _fp:
+                    with open(self.files.toreal(pathname), encoding="utf8", errors='ignore') as _fp:
                         _buf = _fp.read()
                     words = self.parses[o.filetype].get_idents(_buf)
                     for word, line in words:
-                        _symid = symbolcache.get_symid(self.project_name, self.project_version, word)
+                        _symid = symbolcache.get_symid(self.project_name, word)
                         if _symid is None:
                             continue
 
@@ -156,11 +154,13 @@ if __name__ == "__main__":
     from conf import  trees
     import sys
 
-    treename = sys.argv[1]
+    project_name = sys.argv[1]
+    if project_name not in trees:
+        print('%s not in trees.' % project_name)
+        sys.exit(0)
 
-    tree = trees[treename]
-    version = tree['version']
-    init_db(tree['name'], version)
-    g = Genxref(tree, version)
+    project_path = trees[project_name]
+    init_db(project_name)
+    g = Genxref(project_name, project_path)
     g.main()
-    
+

@@ -36,7 +36,6 @@ class MainHandler(tornado.web.RequestHandler):
         self.reqfile = None
         self.tree = None
         self.files = None
-        self.project_version = ''
         self.detail = {}
         self.detail['trees'] = self.get_all_trees()
         self.detail['pages'] = {
@@ -49,14 +48,14 @@ class MainHandler(tornado.web.RequestHandler):
 
 
     def get_all_trees(self):
-        items = conf.trees.values()
-        ret = []
-        for tree in items:
-            dbfile = '%s.%s.sqlite3' % (tree['name'], tree['version'])
+        project_dict = conf.trees
+        ret = {}
+        for project_name in project_dict:
+            dbfile = '%s.sqlite3' % project_name
             from conf import index_dir
             dbfile = os.path.join(index_dir, dbfile)
             if os.path.exists(dbfile):
-                ret.append(tree)
+                ret[project_name] = project_dict[project_name]
         return ret
 
 
@@ -65,32 +64,30 @@ class MainHandler(tornado.web.RequestHandler):
 
     def _identfile(self, filename):
         return '''<a class="identfile" href="/source/%s%s">%s</a>''' % (
-            self.tree['name'], filename, filename)
+            self.project_name, filename, filename)
 
     def _identline(self, filename, line):
         return '''<a class="identline" href="/source/%s%s#%04d">%d</a>''' % (
-            self.tree['name'], filename, line, line)
+            self.project_name, filename, line, line)
 
     def return_ident_page(self):
 
 
         ident = self.get_argument('_i', '')
 
-        symid = symbolcache.get_symid(self.project_name, self.project_version, ident)
+        symid = symbolcache.get_symid(self.project_name, ident)
         if not symid:
             defs = []
             refs = {}
         else:
-            with SwitchEngine(get_engine(self.project_name, self.project_version)):
+            with SwitchEngine(get_engine(self.project_name)):
                 objs = Definitions.query.filter(Definitions.symid==symid).all()
             defs = []
             for o in objs:
                 lang, desc = LangType.format_lang_type(o.typeid)
 
 
-                filename = filecache.get_filename(self.project_name,
-                                                         self.project_version,
-                                                         o.fileid)
+                filename = filecache.get_filename(self.project_name, o.fileid)
 
                 defs.append(
                     (desc,
@@ -99,12 +96,12 @@ class MainHandler(tornado.web.RequestHandler):
                     )
                 )
 
-            with SwitchEngine(get_engine(self.project_name, self.project_version)):
+            with SwitchEngine(get_engine(self.project_name)):
                 objs = Ref.query.filter(Ref.symid==symid).all()
             refs = {}
             for o in objs:
 
-                filename = filecache.get_filename(self.project_name, self.project_version, o.fileid)
+                filename = filecache.get_filename(self.project_name, o.fileid)
                 item = (self._identfile(filename), self._identline(filename, o.line))
                 if o.fileid in refs:
                     refs[o.fileid].append(item)
@@ -117,7 +114,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("ident.html", **self.detail)
 
     def _calc_dir_content(self):
-        dirs, files = self.files.getdir(self.reqfile, self.project_version)
+        dirs, files = self.files.getdir(self.reqfile)
         if not dirs and not files:
             return '''<p class="error">\n<i>The directory /%s does not exist, is empty or is hidden by an exclusion rule.</i>\n</p>\n''' % self.reqfile
 
@@ -128,7 +125,7 @@ class MainHandler(tornado.web.RequestHandler):
             i['name'] = "Parent directory"
             i['class'] = 'dirfolder'
             i['dirclass'] = 'dirrow%d' % (_count%2 + 1)
-            i['href'] = "/source/%s%s" % (self.tree['name'], os.path.dirname(self.reqfile))
+            i['href'] = "/source/%s%s" % (self.project_name, os.path.dirname(self.reqfile))
             i['img'] = '/icons/back.gif'
             i['filesize'] = '-'
             i['modtime'] = '-'
@@ -143,9 +140,9 @@ class MainHandler(tornado.web.RequestHandler):
             i['class'] = 'dirfolder'
             i['dirclass'] = 'dirrow%d' % (_count%2 + 1)
             if self.reqfile and self.reqfile != '/':
-                i['href'] = "/source/%s%s/%s" % (self.tree['name'], self.reqfile, dir_name)
+                i['href'] = "/source/%s%s/%s" % (self.project_name, self.reqfile, dir_name)
             else:
-                i['href'] = "/source/%s/%s" % (self.tree['name'], dir_name)
+                i['href'] = "/source/%s/%s" % (self.project_name, dir_name)
             i['img'] = '/icons/folder.gif'
             i['filesize'] = '-'
             i['modtime'] = '-'
@@ -158,9 +155,9 @@ class MainHandler(tornado.web.RequestHandler):
             i['class'] = 'dirfile'
             i['dirclass'] = 'dirrow%d' % (_count%2 + 1)
             if self.reqfile != '/':
-                i['href'] = "/source/%s%s/%s" % (self.tree['name'], self.reqfile, file_name)
+                i['href'] = "/source/%s%s/%s" % (self.project_name, self.reqfile, file_name)
             else:
-                i['href'] = "/source/%s/%s" % (self.tree['name'], file_name)
+                i['href'] = "/source/%s/%s" % (self.project_name, file_name)
             i['img'] = '/icons/generic.gif'
             i['filesize'] = '-'
             i['modtime'] = '-'
@@ -175,44 +172,43 @@ class MainHandler(tornado.web.RequestHandler):
         from simpleparse import PythonParse, CParse, CPPParse, GOParse
 
         if self.reqfile.lower().endswith(".py"):
-            parse = PythonParse(self.tree)
+            parse = PythonParse(self.project_name, self.project_path)
         elif self.reqfile.lower().endswith(".c"):
-            parse = CParse(self.tree)
+            parse = CParse(self.project_name, self.project_path)
         elif self.reqfile.lower().endswith(".cpp"):
-            parse = CPPParse(self.tree)
+            parse = CPPParse(self.project_name, self.project_path)
         elif self.reqfile.lower().endswith(".h"):
-            parse = CPPParse(self.tree)
+            parse = CPPParse(self.project_name, self.project_path)
         elif self.reqfile.lower().endswith('.go'):
-            parse = GOParse(self.tree)
+            parse = GOParse(self.project_name, self.project_path)
         else:
             parse = None
         if parse:
-            parse.parse_file(self.reqfile, self.project_version)
+            parse.parse_file(self.reqfile)
             return parse.out()
         return self._calc_raw_file()
 
     def _calc_raw_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.project_version)
+        lines = self.files.get_lines(self.reqfile)
         lineno = 0
-        for li in fp:
+        for li in lines:
             lineno += 1
             li = li.replace('<', '&lt;').replace('>', '&gt;')
             html += '''<a class='fline' name="%04d">%04d</a> %s''' % (lineno, lineno, li)
-        fp.close()
         html += '''</pre>'''
         return html
 
     def _calc_text_file(self):
         html = '''<pre class="filecontent">'''
-        fp = self.files.getfp(self.reqfile, self.project_version)
-        html += fp.read()
-        fp.close()
+        txt = self.files.get_txt(self.reqfile)
+        html += txt
+
         html += '''</pre>'''
         return html
 
     def _calc_html_file(self):
-        fp = self.files.getfp(self.reqfile, self.project_version)
+        fp = self.files.getfp(self.reqfile)
         html = fp.read()
         fp.close()
         return html
@@ -220,9 +216,9 @@ class MainHandler(tornado.web.RequestHandler):
     def _calc_source_content(self):
         if self.get_argument('raw', None) == '1':
             return self._calc_text_file()
-        if self.files.isdir(self.reqfile, self.project_version):
+        if self.files.isdir(self.reqfile):
             return self._calc_dir_content()
-        elif self.files.parseable(self.reqfile, self.project_version):
+        elif self.files.parseable(self.reqfile):
             return self._calc_code_file()
         elif self.reqfile.lower().endswith('html'):
             return self._calc_html_file()
@@ -249,10 +245,10 @@ class MainHandler(tornado.web.RequestHandler):
 
     def get_banner_reqfile(self):
         htmls = []
-        href = '/source/%s' % self.tree['name']
+        href = '/source/%s' % self.project_name
         paths = filter(None, self.reqfile.split('/'))
         htmls.append('<span class="banner">')
-        htmls.append('<a class="banner" href="%s">%s</a>' % (href, self.tree['version']))
+        htmls.append('<a class="banner" href="%s">%s</a>' % (href, self.project_name))
         for path in paths:
             href = href + '/' + path
             htmls.append('/')
@@ -277,17 +273,17 @@ class MainHandler(tornado.web.RequestHandler):
             self.return_index_page()
             return
 
-        self.tree = conf.trees.get(args[1])
-        self.project_name = self.tree['name']
-        self.project_version = self.tree['version']
+        self.project_name = args[1]
+        self.project_path = conf.trees[self.project_name]
 
-        self.files = Files(conf.trees.get(args[1]))
+
+        self.files = Files(self.project_path)
 
         if len(args) >= 3:
             self.reqfile = args[2] or '/'
         else:
             self.reqfile = '/'
-        self.detail['tree'] = self.tree
+        self.detail['tree'] = self.project_name
         self.detail['reqfile'] = self.reqfile
         self.detail['banner_reqfile'] = self.get_banner_reqfile()
         self.detail['files'] = self.files

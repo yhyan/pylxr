@@ -21,9 +21,9 @@
           <a href="/">Available trees: &nbsp;&nbsp;&nbsp;</a>
 	{% for i in trees %}
 	{% if tree == i %}
-	&nbsp;<span class="tree-sel">{{i['name']}}</span>&nbsp;
+	&nbsp;<span class="tree-sel">{{i}}</span>&nbsp;
 	{% else %}
-	&nbsp;<a class="treelink" href="/source/{{i['name']}}">{{i['name']}}</a>&nbsp;
+	&nbsp;<a class="treelink" href="/source/{{i}}">{{i}}</a>&nbsp;
 	{% end %}
 	{% end %}
       </td>
@@ -34,20 +34,20 @@
       </td>
       <td>
 	<table class="header">
-	  <tr><td><h1 class="main">{{tree['name']}}</h1></td></tr>
+	  <tr><td><h1 class="main">{{tree}}</h1></td></tr>
 	  <tr><td class="banner">{% raw banner_reqfile %}</td></tr>
 	</table>
       </td>
       <td class="rightmost">
 	{% for i in ["source", "ident", "search"] %}
 	{% if page != i %}
-	<form method="get" class="modes" action="/{{i}}/{{tree['name']}}">
+	<form method="get" class="modes" action="/{{i}}/{{tree}}">
 	  <div class="compact">
 	    <button type="submit" >{{pages[i]}}</button>
 	  </div>
 	</form>
 	{% else %}
-	<form method="get" class="modes-sel" action="/{{i}}/{{tree['name']}}">
+	<form method="get" class="modes-sel" action="/{{i}}/{{tree}}">
 	  <div class="compact">
 	    <button type="submit" disabled>{{pages[i]}}</button>
 	  </div>
@@ -60,17 +60,6 @@
     <tr>
       <td>&nbsp;</td>
       <td colspan='2' class="rightmost">
-	<form method="get" class="vars" action="/search/{{tree['name']}}">
-	  <p class="compact">
-	    &nbsp;<label>Version:
-	      <select name="!v">
-		<option class="var-sel" selected>{{tree['version']}}</option>
-	      </select>
-	    </label>
-	    <button type="reset">Revert</button>&nbsp;&nbsp;
-	    <button type="submit">Change</button>
-	  </p>
-	</form>
       </td>
     </tr>
   </table>
@@ -86,7 +75,7 @@
 <tr>
   {% for i in ["source", "ident", "search"] %}
   {% if page != i %}
-  <td>[&nbsp;<a class="modes" href="/{{i}}/{{tree['name']}}">{{pages[i]}}</a>&nbsp;]</td>
+  <td>[&nbsp;<a class="modes" href="/{{i}}/{{tree}}">{{pages[i]}}</a>&nbsp;]</td>
   {% else %}
   <td>[&nbsp;<span class="modes-sel">{{pages[i]}}</span>&nbsp;]</td>
   {% end %}

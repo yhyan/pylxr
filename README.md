@@ -77,3 +77,8 @@ python main.py
 核心点在于编写每种编程语言的parser。
 
 
+# TODO
+
+- c/c++ 头文件链接
+- c/c++ 支持全局变量
+

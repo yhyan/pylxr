@@ -23,14 +23,7 @@ except ImportError as e:
 
     trees = {
         # for debug
-        'redispy': {
-            'name': 'redispy',
-            'desc': 'redispy',
-            'sourceroot': os.path.join(source_root, 'redispy'),
-            'versions': ['2.10.3'],
-            'version': '2.10.3',
-            'display': True,
-        },
+        'redispy': os.path.join(source_root, 'redispy/2.10.3'),
     }
 
 

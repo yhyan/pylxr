@@ -25,13 +25,12 @@ def find_escape_char(s, right, left):
 
 class SimpleParse(object):
 
-    def __init__(self, tree):
-        self.tree = tree
-        self.project_name = tree['name']
-        self.project_version = tree['version']
-        self.files = Files(tree)
+    def __init__(self, project_name, project_path):
+        self.project_name = project_name
+        self.project_path = project_path
+
+        self.files = Files(project_path)
         self.filename = ''
-        self.release_id = ''
         self.buf = []
         self.pos = 0
         self.start = 0
@@ -43,11 +42,9 @@ class SimpleParse(object):
         self.open_re = re.compile("|".join(['(%s)' % i['open'] for i in self.spec]), re.M)
 
 
-    def parse_file(self, filename, release_id):
-        fp = self.files.getfp(filename, release_id)
-        buf = fp.read()
-        fp.close()
-        self.parse(buf, filename, release_id)
+    def parse_file(self, filename):
+        buf = self.files.get_txt(filename)
+        self.parse(buf, filename)
 
 
 
@@ -68,12 +65,12 @@ class SimpleParse(object):
 
 
     def get_include_link(self, word, path):
-        html = '''<a class='include' href="/source/%s%s">%s</a>''' % (self.tree['name'], path, word)
+        html = '''<a class='include' href="/source/%s%s">%s</a>''' % (self.project_name, path, word)
         return html
 
 
     def get_ident_link(self, ident):
-        html = '''<a class='fid' href="/ident/%s?_i=%s">%s</a>''' % (self.tree['name'], ident, ident)
+        html = '''<a class='fid' href="/ident/%s?_i=%s">%s</a>''' % (self.project_name, ident, ident)
         return html
 
 
@@ -84,7 +81,7 @@ class SimpleParse(object):
 
 
     def is_ident(self, word):
-        rv = symbolcache.get_symid(self.project_name, self.project_version, word)
+        rv = symbolcache.get_symid(self.project_name, word)
         if rv is None:
             return False
         return True
@@ -119,10 +116,9 @@ class SimpleParse(object):
 
 
 
-    def parse(self, buf, filename='', release_id=''):
-        if filename and release_id:
+    def parse(self, buf, filename=''):
+        if filename:
             self.filename = filename
-            self.release_id = release_id
 
         self.buf = buf
         self.pos = 0
@@ -236,8 +232,8 @@ class PythonParse(SimpleParse):
     ]
 
 
-    def __init__(self, tree):
-        super(PythonParse, self).__init__(tree)
+    def __init__(self, project_name, project_path):
+        super(PythonParse, self).__init__(project_name, project_path)
 
     def _parse_code(self, frag):
         ss = self.identdef.split(frag)
@@ -269,7 +265,7 @@ class PythonParse(SimpleParse):
                 continue
             if self.is_reserved(i):
                 kk.append(self.get_reserved_link(i))
-            elif self._is_package(i) and self.filename and self.release_id:
+            elif self._is_package(i) and self.filename:
                 if i.startswith(".."):
                     _dir = os.path.join(os.path.dirname(self.filename), '..')
                 elif i.startswith("."):
@@ -287,10 +283,10 @@ class PythonParse(SimpleParse):
                     if j == '.':
                         kk.append(j)
                     else:
-                        if self.files.isdir(os.path.join(_dir, j), self.release_id):
+                        if self.files.isdir(os.path.join(_dir, j)):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j)))
                             _dir = os.path.join(_dir, j)
-                        elif self.files.exists(os.path.join(_dir, j + ".py"), self.release_id):
+                        elif self.files.exists(os.path.join(_dir, j + ".py")):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j + ".py")))
                         else:
                             kk.append(j)
@@ -329,13 +325,22 @@ class CParse(SimpleParse):
         for i in ss:
             if i == '':
                 continue
+            ni = i.strip()
+            if not ni:
+                kk.append(i)
+                continue
+
             if i == '<':
                 i = "&lt;"
+                kk.append(i)
             elif i == '>':
                 i = "&gt;"
-            if self.is_reserved(i):
+                kk.append(i)
+            elif i == '"':
+                kk.append(i)
+            elif self.is_reserved(i):
                 kk.append(self.get_reserved_link(i))
-            elif self.filename and self.release_id:
+            elif self.filename:
                 _dir = os.path.dirname(self.filename)
                 words = []
                 for j in i.split("/"):
@@ -348,10 +353,10 @@ class CParse(SimpleParse):
                     if j == '/':
                         kk.append(j)
                     else:
-                        if self.files.isdir(os.path.join(_dir, j), self.release_id):
+                        if self.files.isdir(os.path.join(_dir, j)):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j)))
                             _dir = os.path.join(_dir, j)
-                        elif self.files.exists(os.path.join(_dir, j), self.release_id):
+                        elif self.files.exists(os.path.join(_dir, j)):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j)))
                         else:
                             kk.append(j)
@@ -425,7 +430,7 @@ class CPPParse(SimpleParse):
                 i = "&gt;"
             if self.is_reserved(i):
                 kk.append(self.get_reserved_link(i))
-            elif self.filename and self.release_id:
+            elif self.filename:
                 _dir = os.path.dirname(self.filename)
                 words = []
                 for j in i.split("/"):
@@ -438,10 +443,10 @@ class CPPParse(SimpleParse):
                     if j == '/':
                         kk.append(j)
                     else:
-                        if self.files.isdir(os.path.join(_dir, j), self.release_id):
+                        if self.files.isdir(os.path.join(_dir, j)):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j)))
                             _dir = os.path.join(_dir, j)
-                        elif self.files.exists(os.path.join(_dir, j), self.release_id):
+                        elif self.files.exists(os.path.join(_dir, j)):
                             kk.append(self.get_include_link(j, os.path.join(_dir, j)))
                         else:
                             kk.append(j)

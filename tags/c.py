@@ -19,8 +19,13 @@ def find_tags(abspath):
     tags = []
     if os.path.isfile(abspath):
         try:
-            with open(abspath) as fp:
-                txt = fp.read()
+            txt = ''
+            try:
+                with open(abspath) as fp:
+                    txt = fp.read()
+            except:
+                with open(abspath, encoding='gbk') as fp:
+                    txt = fp.read()
             tokens = c_lexer.lex(txt)
 
             tags = statements.StatementFinder().parse(tokens)

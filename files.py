@@ -6,15 +6,15 @@ class Files(object):
     `pathname` startswith '/xxxx/xxx.py'
     '''
     
-    def __init__(self, tree):
-        self.rootpath = tree['sourceroot']
+    def __init__(self, project_path):
+        self.project_path = project_path
         
-    def exists(self, pathname, releaseid):
-        return os.path.exists(self.toreal(pathname, releaseid))
+    def exists(self, pathname):
+        return os.path.exists(self.toreal(pathname))
     
-    def getdir(self, pathname, releaseid):
+    def getdir(self, pathname):
         dirs, files = [], []
-        realpath = self.toreal(pathname, releaseid)
+        realpath = self.toreal(pathname)
         for i in os.listdir(realpath):
             j = os.path.join(realpath, i)
             if os.path.isdir(j):
@@ -23,25 +23,44 @@ class Files(object):
                 files.append(i)
         return sorted(dirs), sorted(files)
 
-    def getfp(self, pathname, releaseid):
-        return open(self.toreal(pathname, releaseid))
+    def getfp(self, pathname):
+        return open(self.toreal(pathname))
 
-    def isdir(self, pathname, releaseid):
-        real = self.toreal(pathname, releaseid)
+    def get_lines(self, pathname):
+        realpath = self.toreal(pathname)
+        try:
+            with open(realpath) as fp:
+                return fp.readlines()
+        except:
+            with open(realpath, encoding='gbk') as fp:
+                return fp.readlines()
+
+    def get_txt(self, pathname):
+        realpath = self.toreal(pathname)
+        try:
+            with open(realpath) as fp:
+                return fp.read()
+        except:
+            with open(realpath, encoding='gbk') as fp:
+                return fp.read()
+
+
+    def isdir(self, pathname):
+        real = self.toreal(pathname)
         return os.path.isdir(real)
 
-    def isfile(self, pathname, releaseid):
-        real = self.toreal(pathname, releaseid)
+    def isfile(self, pathname):
+        real = self.toreal(pathname)
         return os.path.isfile(real)
         
-    def gettime(self, pathname, releaseid):
-        mtime = os.path.getmtime(self.toreal(pathname, releaseid))
+    def gettime(self, pathname):
+        mtime = os.path.getmtime(self.toreal(pathname))
         return mtime
     
-    def getsize(self, pathname, releaseid):
-        return os.path.getsize(self.toreal(pathname, releaseid))
+    def getsize(self, pathname):
+        return os.path.getsize(self.toreal(pathname))
 
-    def gettype(self, pathname, releaseid):
+    def gettype(self, pathname):
         idx = pathname.rfind(".")
         if idx > 0:
             ext = pathname[idx+1:].lower()
@@ -63,7 +82,7 @@ class Files(object):
         elif pathname == 'readme':
             return 'readme'
 
-        if self.istext(pathname, releaseid):
+        if self.istext(pathname):
             return 'text'
         return 'bin'
 
@@ -75,16 +94,16 @@ class Files(object):
         return False
 
 
-    def parseable(self, pathname, releaseid):
-        ftype = self.gettype(pathname, releaseid)
+    def parseable(self, pathname):
+        ftype = self.gettype(pathname)
         if ftype in ['python', 'c++', 'c', 'h', 'go']:
             return True
         
         return False
     
     
-    def istext(self, pathname, releaseid):
-        filename = self.toreal(pathname, releaseid)
+    def istext(self, pathname):
+        filename = self.toreal(pathname)
         try:
             s = open(filename).read(512)
         except:
@@ -120,26 +139,24 @@ class Files(object):
         return True
         
     
-    def toreal(self, pathname, releaseid):
+    def toreal(self, pathname):
         if pathname == '/':
-            return os.path.abspath(os.path.join(self.rootpath, releaseid))
+            return self.project_path
         if pathname.startswith("/"):
             pathname = pathname[1:]
-        return os.path.abspath(os.path.join(
-            self.rootpath, releaseid, pathname))
+        return os.path.realpath(os.path.join(self.project_path, pathname))
 
     
-    def filerev(self, pathname, releaseid):
-        return "-".join([str(self.getsize(pathname, releaseid)),
-                         str(self.gettime(pathname, releaseid))])
+    def filerev(self, pathname):
+        return "-".join([str(self.getsize(pathname)),
+                         str(self.gettime(pathname))])
     
 
 if __name__ == "__main__":
 
     from conf import trees
     
-    for tree in trees.values():
-        st = Files(tree)
-        releaseid = tree['default_version']
+    for project_path in trees.values():
+        st = Files(project_path)
         pathname = '.'
-        print(st.getdir(pathname, releaseid))
+        print(st.getdir(pathname))
