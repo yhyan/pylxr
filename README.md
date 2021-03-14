@@ -78,7 +78,5 @@ python main.py
 
 
 # TODO
-
-- c/c++ 头文件链接
 - c/c++ 支持全局变量
 

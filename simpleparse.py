@@ -341,25 +341,16 @@ class CParse(SimpleParse):
             elif self.is_reserved(i):
                 kk.append(self.get_reserved_link(i))
             elif self.filename:
-                _dir = os.path.dirname(self.filename)
-                words = []
-                for j in i.split("/"):
-                    words.append(j)
-                    words.append('/')
-                words.pop()
-                for j in words:
-                    if not j:
-                        continue
-                    if j == '/':
-                        kk.append(j)
-                    else:
-                        if self.files.isdir(os.path.join(_dir, j)):
-                            kk.append(self.get_include_link(j, os.path.join(_dir, j)))
-                            _dir = os.path.join(_dir, j)
-                        elif self.files.exists(os.path.join(_dir, j)):
-                            kk.append(self.get_include_link(j, os.path.join(_dir, j)))
-                        else:
-                            kk.append(j)
+                from models import get_engine
+
+                eg = get_engine(self.project_name)
+                sql = "select filename from src_file where filename like '%%%s' limit 1;" % i
+                ret = eg.execute(sql)
+                obj = ret.fetchone()
+                if obj is None:
+                    kk.append(i)
+                else:
+                    kk.append(self.get_include_link(i, obj[0]))
             elif self.is_ident(i):
                 kk.append(self.get_ident_link(i))
             else:
