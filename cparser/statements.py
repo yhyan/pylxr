@@ -162,10 +162,11 @@ class StatementFinder:
         n = len(tokens)
         i = semi_index - 1
         in_bracket = False
+        tag_list = []
         while i >= 0 and i < n:
             token = tokens[i]
-            if token.type in ignore_token_type:
-                return None
+            if token.type in ('NEWLINE',):
+                return tag_list
             if token.value == ')':
                 in_bracket = True
             elif token.value == '(':
@@ -177,8 +178,9 @@ class StatementFinder:
             if token.type != 'ID':
                 i -= 1
                 continue
-            return i
-        return None
+            tag_list.append(i)
+            i -= 1
+        return tag_list
 
     def yield_tags(self, tokens):
         "yield tuples from STATEMENTS for each toplevel item found in tokens"
@@ -187,7 +189,7 @@ class StatementFinder:
 
         while i < max_length:
             tok = tokens[i]
-            if tok.type in ( 'STRUCT', 'ENUM',):
+            if tok.type in ( 'STRUCT', 'ENUM', 'UNION'):
                 name_index, next_index = self.find_struct_type_name(tokens, i)
                 debug_token_type(tokens, i)
                 if name_index is not None:
@@ -232,11 +234,12 @@ class StatementFinder:
                 # 全局的 ; 结束的语句
                 if develop_debug:
                     print(';', tokens[i].value, tokens[i].lineno)
-                name_index = self.find_global_variable_name(tokens, i)
-                if name_index is not None:
-                    self.tags.append((tokens[name_index].value,
-                                      tokens[name_index].lineno,
-                                      LangType.lang_c + LangType.def_variable))
+                tag_list = self.find_global_variable_name(tokens, i)
+                if len(tag_list) > 0:
+                    for name_index in tag_list:
+                        self.tags.append((tokens[name_index].value,
+                                          tokens[name_index].lineno,
+                                          LangType.lang_c + LangType.def_variable))
 
             elif tok.value in ('{', '}', '(', ')', '[', ']'):
                 if tok.value in ('{', '(', '['):

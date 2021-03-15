@@ -14,13 +14,15 @@ from tags.base import find_tags
 class Genxref(object):
 
 
-    def __init__(self, project_name, project_path):
+    def __init__(self, project_name, project_path, start_path='/'):
         self.files = Files(project_path)
         self.filestype = {}
         self.project_name = project_name
         self.project_path = project_path
         self.commit_cnt = 0
         self.MAX_COMMIT = 1000        
+
+        self.start_path = start_path
 
         self.sym_filetype = {}
 
@@ -43,12 +45,12 @@ class Genxref(object):
 
         self.pathname_to_obj = {}
         
-        self.init_files('/')
+        self.init_files(self.start_path)
 
         # ctags 符号
-        self.symbols('/')
+        self.symbols(self.start_path)
         # sym ref
-        self.symref('/')
+        self.symref(self.start_path)
 
 
 
@@ -165,8 +167,14 @@ if __name__ == "__main__":
         print('%s not in trees.' % project_name)
         sys.exit(0)
 
+    if len(sys.argv) >= 3:
+        # for debug single file
+        start_path = sys.argv[2]
+    else:
+        start_path = '/'
+
     project_path = trees[project_name]
     init_db(project_name)
-    g = Genxref(project_name, project_path)
+    g = Genxref(project_name, project_path, start_path)
     g.main()
 
