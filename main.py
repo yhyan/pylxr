@@ -169,7 +169,7 @@ class MainHandler(tornado.web.RequestHandler):
         return html
 
     def _calc_code_file(self):
-        from simpleparse import PythonParse, CParse, CPPParse, GOParse
+        from simpleparse import PythonParse, CParse, CPPParse, GOParse, AsmParse
 
         if self.reqfile.lower().endswith(".py"):
             parse = PythonParse(self.project_name, self.project_path)
@@ -181,6 +181,8 @@ class MainHandler(tornado.web.RequestHandler):
             parse = CPPParse(self.project_name, self.project_path)
         elif self.reqfile.lower().endswith('.go'):
             parse = GOParse(self.project_name, self.project_path)
+        elif self.reqfile.lower().endswith('.s'):
+            parse = AsmParse(self.project_name, self.project_path)
         else:
             parse = None
         if parse:

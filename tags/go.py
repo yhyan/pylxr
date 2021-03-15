@@ -4,6 +4,8 @@
 import os
 from goparser import golex, statements
 
+from utils import smart_read
+
 def find_tags(abspath):
     '''
 
@@ -13,8 +15,7 @@ def find_tags(abspath):
     tags = []
     if os.path.isfile(abspath):
         try:
-            with open(abspath) as fp:
-                txt = fp.read()
+            txt = smart_read(abspath)
             tokens = golex.lex(txt)
 
             tags = statements.StatementFinder().parse(tokens)

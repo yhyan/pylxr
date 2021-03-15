@@ -76,6 +76,8 @@ class Files(object):
             return 'c++'
         elif ext == 'go':
             return 'go'
+        elif ext == 's':
+            return 'asm'
 
         if pathname == 'makefile':
             return 'makefile'
@@ -96,7 +98,7 @@ class Files(object):
 
     def parseable(self, pathname):
         ftype = self.gettype(pathname)
-        if ftype in ['python', 'c++', 'c', 'h', 'go']:
+        if ftype in ['python', 'c++', 'c', 'h', 'go', 'asm']:
             return True
         
         return False

@@ -9,7 +9,7 @@ from files import Files
 
 from dbcache import symbolcache
 
-__all__ = ['PythonParse', 'CPPParse', 'CParse', 'parses']
+__all__ = ['PythonParse', 'CPPParse', 'CParse', 'AsmParse', 'parses']
 
 def find_escape_char(s, right, left):
     c = 0
@@ -69,8 +69,10 @@ class SimpleParse(object):
         return html
 
 
-    def get_ident_link(self, ident):
-        html = '''<a class='fid' href="/ident/%s?_i=%s">%s</a>''' % (self.project_name, ident, ident)
+    def get_ident_link(self, ident, display_name=''):
+        if not display_name:
+            display_name = ident
+        html = '''<a class='fid' href="/ident/%s?_i=%s">%s</a>''' % (self.project_name, ident, display_name)
         return html
 
 
@@ -378,6 +380,44 @@ class CParse(SimpleParse):
                 kk.append(i)
         return ''.join(kk)
 
+class AsmParse(SimpleParse):
+
+    lang = 'asm'
+    blankre = re.compile('([\s\<\>"])', re.M)
+    identdef = re.compile('([a-zA-Z_]\w+)', re.M)
+    reserved = [
+                ]
+    spec = [
+        {"open": ";", "close": "\n", "type": "comment"},
+        {"open": "//", "close": "\n", "type": "comment"},
+        {"open": '"', "close": '"', "type": "string"},
+        {"open": "'", "close": "'", "type": "string"},
+    ]
+
+
+
+
+    def _parse_code(self, frag):
+        ss = self.identdef.split(frag)
+        kk = []
+        for i in ss:
+            if not i:
+                continue
+            if i == '<':
+                i = "&lt;"
+            elif i == '>':
+                i = "&gt;"
+
+            if self.is_reserved(i):
+                kk.append(self.get_reserved_link(i))
+            elif self.is_ident(i):
+                kk.append(self.get_ident_link(i))
+            elif i[0] == '_' and self.is_ident(i[1:]):
+                kk.append(self.get_ident_link(i[1:], i))
+            else:
+                i = i.replace("<", "&lt;").replace(">", "&gt;")
+                kk.append(i)
+        return ''.join(kk)
 
 
 class CPPParse(SimpleParse):
@@ -517,6 +557,7 @@ parses = {
     CParse.lang: CParse,
     CPPParse.lang: CPPParse,
     GOParse.lang: GOParse,
+    AsmParse.lang: AsmParse,
 
 }
 

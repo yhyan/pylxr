@@ -18,7 +18,7 @@ class SourceFile(object):
 
 
 def find_tags(abspath, lang):
-    if lang not in ('python', 'c', 'c++', 'go'):
+    if lang not in ('python', 'c', 'c++', 'go', 'asm'):
         return []
 
     if lang == 'go':
@@ -27,6 +27,8 @@ def find_tags(abspath, lang):
         import tags.c as mod
     elif lang == 'python':
         import tags.python as mod
+    elif lang == 'asm':
+        import tags.asm as mod
     else:
         print('unknown lang=%s' % lang)
         return []
