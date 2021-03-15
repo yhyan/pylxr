@@ -21,15 +21,27 @@ def debug_token_type(tokens, i):
 
 class StatementFinder:
     "see docs for parse() method"
+
+    char_dict = {
+        '(': ')',
+        '{': '}',
+        '[': ']',
+
+        ')': '(',
+        '}': '{',
+        ']': '[',
+    }
+
     def __init__(self):
 
+        self.tags = []
+        self.stack = []
         self.clear()
 
     def clear(self):
         "clear since-statement-open state after closing a statement"
-        self.open_statement = None
-        self.scopes_since_open = []
-        self.slices_since_open = []
+        self.stack = []
+        self.tags = []
 
     def expect_token(self, tokens, start, token_type):
         if token_type == '{':
@@ -63,12 +75,8 @@ class StatementFinder:
         return -1
 
     def goto_until_bracket(self, tokens, left_index, left_char):
-        char_dict = {
-            '(': ')',
-            '{': '}',
-            '[': ']',
-        }
-        right_char = char_dict[left_char]
+
+        right_char = self.char_dict[left_char]
         assert tokens[left_index].value == left_char
         n = len(tokens)
         stack = [left_index, ]
@@ -150,11 +158,32 @@ class StatementFinder:
             return None, None
         return id_index, id_index + 1
 
+    def find_global_variable_name(self, tokens, semi_index):
+        n = len(tokens)
+        i = semi_index - 1
+        in_bracket = False
+        while i >= 0 and i < n:
+            token = tokens[i]
+            if token.type in ignore_token_type:
+                return None
+            if token.value == ')':
+                in_bracket = True
+            elif token.value == '(':
+                in_bracket = False
+            if in_bracket:
+                i -= 1
+                continue
+
+            if token.type != 'ID':
+                i -= 1
+                continue
+            return i
+        return None
+
     def yield_tags(self, tokens):
         "yield tuples from STATEMENTS for each toplevel item found in tokens"
         i = 0
         max_length = len(tokens)
-        tags = []
 
         while i < max_length:
             tok = tokens[i]
@@ -166,39 +195,64 @@ class StatementFinder:
                     i = next_index
                     if develop_debug:
                         print('type', tokens[name_index].value, tokens[name_index].lineno)
-                    tags.append((tokens[name_index].value,
+                    self.tags.append((tokens[name_index].value,
                                  tokens[name_index].lineno,
                                  LangType.lang_c + LangType.def_struct
                                  ))
                     continue
 
+            elif tok.type == 'DIRE':  #
+                name_index, next_index = self.find_define_name(tokens,i)
+                if name_index is not None:
+                    # i = next_index
+                    if develop_debug:
+                        print('#define', tokens[name_index].value, tokens[name_index].lineno)
+                    self.tags.append((tokens[name_index].value,
+                                 tokens[name_index].lineno,
+                                 LangType.lang_c + LangType.def_define))
             elif tok.type == 'LPAREN':
                 # find '(', check if function
+
+
                 debug_token_type(tokens, i)
                 name_index, next_index = self.find_func_name(tokens, i)
 
-                
                 if name_index is not None:
                     i = next_index
                     if develop_debug:
                         print('func', tokens[name_index].value, tokens[name_index].lineno)
-                    tags.append((tokens[name_index].value,
-                                 tokens[name_index].lineno,
-                                 LangType.lang_c + LangType.def_func
-                                 ))
+                    self.tags.append((tokens[name_index].value,
+                                      tokens[name_index].lineno,
+                                      LangType.lang_c + LangType.def_func
+                                      ))
                     continue
-            elif tok.type == 'DIRE':  #
-                name_index, next_index = self.find_define_name(tokens,i)
+                else:
+                    self.stack.append(tokens[i].value)
+            elif tok.type == 'SEMI' and len(self.stack) == 0:
+                # 全局的 ; 结束的语句
+                if develop_debug:
+                    print(';', tokens[i].value, tokens[i].lineno)
+                name_index = self.find_global_variable_name(tokens, i)
                 if name_index is not None:
-                    i = next_index
-                    if develop_debug:
-                        print('#define', tokens[name_index].value, tokens[name_index].lineno)
-                    tags.append((tokens[name_index].value,
-                                 tokens[name_index].lineno,
-                                 LangType.lang_c + LangType.def_define))
+                    self.tags.append((tokens[name_index].value,
+                                      tokens[name_index].lineno,
+                                      LangType.lang_c + LangType.def_variable))
+
+            elif tok.value in ('{', '}', '(', ')', '[', ']'):
+                if tok.value in ('{', '(', '['):
+                    self.stack.append(tok.value)
+                else:
+                    if len(self.stack) <= 0 or self.stack[-1] != self.char_dict[tok.value]:
+                        print(tok.value)
+                        raise Exception('%s %s' %( tokens[i].value, tokens[i].lineno))
+
+                    self.stack.pop()
+
+
             i += 1
-        return tags
+        return self.tags
 
     def parse(self, tokens, debug=False):
         "return list of tuples from STATEMENTS / NegativeSlice"
         return self.yield_tags(tokens)
+

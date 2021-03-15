@@ -41,7 +41,7 @@ def test_all_python_source_code():
 
 
 def test_statements():
-    tokens = c_lexer.lex(open(FNAME).read())
+    tokens = c_lexer.lex(open(FNAME, encoding='gb2312').read())
     stmts = statements.StatementFinder().parse(tokens)
     print(stmts)
     # assert sum((tokens[tup.slice] for tup in stmts), []) == tokens

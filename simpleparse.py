@@ -340,7 +340,7 @@ class CParse(SimpleParse):
                 kk.append(i)
             elif self.is_reserved(i):
                 kk.append(self.get_reserved_link(i))
-            elif self.filename:
+            elif self.filename and i.lower().endswith('.h'):
                 from models import get_engine
 
                 eg = get_engine(self.project_name)

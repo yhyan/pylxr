@@ -410,7 +410,7 @@ class CTok(object):
 
 
 def lex(string):
-    lexer = ply.lex.lex(module=CTok())
+    lexer = ply.lex.lex(module=CTok(), reflags=re.UNICODE)
     lexer.input(string)
     a = []
     while 1:
