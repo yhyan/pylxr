@@ -67,7 +67,9 @@ class Genxref(object):
                     _files.append(os.path.join(pathname, i))
             else:
                 f = File(pathname)
+                cnt = self.files.getlinecount(pathname)
                 f.filetype = self.files.gettype(pathname)
+                f.linecount = cnt
                 self.session.add(f)
                 self.pathname_to_obj[pathname] = f
         self.session.commit()

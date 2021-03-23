@@ -114,7 +114,16 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("ident.html", **self.detail)
 
     def _calc_dir_content(self):
+        from models import File
+
         dirs, files = self.files.getdir(self.reqfile)
+        filenames = [os.path.join(self.reqfile, _f) for _f in files]
+        linecount_dict = {}
+        with SwitchEngine(get_engine(self.project_name)):
+            objs = File.query.get_many(filenames)
+            for o in objs:
+                linecount_dict[o.filename] = o.linecount
+
         if not dirs and not files:
             return '''<p class="error">\n<i>The directory /%s does not exist, is empty or is hidden by an exclusion rule.</i>\n</p>\n''' % self.reqfile
 
@@ -127,7 +136,7 @@ class MainHandler(tornado.web.RequestHandler):
             i['dirclass'] = 'dirrow%d' % (_count%2 + 1)
             i['href'] = "/source/%s%s" % (self.project_name, os.path.dirname(self.reqfile))
             i['img'] = '/icons/back.gif'
-            i['filesize'] = '-'
+            i['linecount'] = '-'
             i['modtime'] = '-'
             i['desc'] = ''
             _count += 1
@@ -144,7 +153,7 @@ class MainHandler(tornado.web.RequestHandler):
             else:
                 i['href'] = "/source/%s/%s" % (self.project_name, dir_name)
             i['img'] = '/icons/folder.gif'
-            i['filesize'] = '-'
+            i['linecount'] = '-'
             i['modtime'] = '-'
             i['desc'] = ''
             _count += 1
@@ -159,7 +168,8 @@ class MainHandler(tornado.web.RequestHandler):
             else:
                 i['href'] = "/source/%s/%s" % (self.project_name, file_name)
             i['img'] = '/icons/generic.gif'
-            i['filesize'] = '-'
+
+            i['linecount'] = linecount_dict.get(os.path.join(self.reqfile, file_name), '-')
             i['modtime'] = '-'
             i['desc'] = ''
             _count += 1

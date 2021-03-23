@@ -213,6 +213,16 @@ class FileQuery(BaseQuery):
             self.session.commit()
         return rv
 
+    def get_one(self, filename):
+        rv = self.filter(File.filename==filename).first()
+        if rv is None:
+            return None
+        return rv
+
+    def get_many(self, filenames):
+        rv = self.filter(File.filename.in_(filenames)).all()
+        return rv
+
     
 class File(base_model):
     __tablename__ = 'src_file'
@@ -221,8 +231,12 @@ class File(base_model):
     
     fileid = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
 
-    filename = Column(String(256), nullable=False)
+    filename = Column(String(256), nullable=False, index=True)
     filetype = Column(String(16), nullable=True)
+
+    # 行数
+    linecount = Column(Integer, nullable=False, default=0)
+
     # 1 表是index 2 表示ref
     status = Column(Integer, nullable=False, default=0)
     indexed_at = Column(DateTime, nullable=True)

@@ -88,6 +88,20 @@ class Files(object):
             return 'text'
         return 'bin'
 
+    def getlinecount(self, pathname):
+        _type = self.gettype(pathname)
+        if _type == 'bin':
+            return 0
+        count = 0
+        with open(self.toreal(pathname), 'rb') as fp:
+            while 1:
+                buffer = fp.read(8192 * 1024)
+                if not buffer:
+                    break
+                # print(type(buffer))
+                count += buffer.count(b'\n')
+        return count
+
     def is_same_filetype(self, a, b):
         if a == b:
             return True
