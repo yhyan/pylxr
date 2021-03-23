@@ -14,12 +14,6 @@ cookie_secret = '__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__'
 
 
 trees = {
-    'redispy': {
-        'name': 'redispy',
-        'desc': 'redispy',
-        'sourceroot': os.path.join(source_root, 'redispy'),
-        'versions': ['2.10.3'],
-        'version': '2.10.3',
-    },
+    'redispy': os.path.join(source_root, 'redispy/2.10.3'),
 
 }

@@ -186,7 +186,7 @@ class Symbol(base_model):
     query_class = SymbolQuery
     
     symid = Column(Integer, nullable=False, primary_key=True)
-    symname = Column(String(255), nullable=False)
+    symname = Column(String(255), nullable=False, unique=True)
 
     def __init__(self, symname, symid=1):
         self.symname = symname

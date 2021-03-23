@@ -77,6 +77,7 @@ class Genxref(object):
 
         total_commit = 0
         _files = [pathname]
+        exist_syms = {}
         while _files:
             pathname = _files.pop(0)
             if self.files.isdir(pathname):
@@ -89,12 +90,20 @@ class Genxref(object):
                     tags = find_tags(self.files.toreal(pathname), o.filetype)
                     for tag in tags:
                         sym, line, lang_typeid = tag
-                        symbol_obj = Symbol(sym, self.symid)
-                        defin = Definitions(self.symid, o.fileid, line, lang_typeid)
-                        self.sym_filetype[self.symid] = o.filetype
-                        self.session.add(symbol_obj)
+
+                        if sym in exist_syms:
+                            sym_id = exist_syms[sym]
+                        else:
+                            symbol_obj = Symbol(sym, self.symid)
+                            sym_id = self.symid
+                            exist_syms[sym] = sym_id
+                            self.symid += 1
+                            self.session.add(symbol_obj)
+
+                        defin = Definitions(sym_id, o.fileid, line, lang_typeid)
+                        self.sym_filetype[sym_id] = o.filetype
                         self.session.add(defin)
-                        self.symid += 1
+
                     o.set_indexed()
                     self.session.add(o)
                     total_commit += 1
