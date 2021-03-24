@@ -1,6 +1,6 @@
 一个web版的查看源代码的工具，从[lxr](https://en.wikipedia.org/wiki/LXR_Cross_Referencer)移植过来。
 
-核心功能：根据标识符(identifier)查询索引，只支持python，c，c++，go语言。
+核心功能：根据标识符(identifier)查询索引，只支持python，c，go语言。
 
 python源码支持的identifier：
 
@@ -10,12 +10,16 @@ python源码支持的identifier：
 
 C语言支持的identifier：
 
-C++支持的identifier：
+- define 宏
+- 函数
+- 全局变量
+- struct，enum， union类型定义
+
 
 Go支持的identifier：
 
-
-
+- 函数
+- type定义
 
 
 # Demo
@@ -46,14 +50,7 @@ data_dir = '/data/lxr'
 source_root = '/data/lxr/source/'
 
 trees = {
-    'redispy': {
-        'name': 'redispy',
-        'desc': 'redispy',
-        'sourceroot': os.path.join(source_root, 'redispy'),
-        'versions': ['2.10.3'],
-        'version': '2.10.3',
-        'display': True,
-    },
+    'redispy': os.path.join(source_root, 'redispy/2.10.3'),
 }
 
 ```
