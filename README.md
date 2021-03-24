@@ -1,4 +1,4 @@
-一个web版的查看源代码的工具，从[lxr](https://en.wikipedia.org/wiki/LXR_Cross_Referencer)移植过来。
+一个web版的查看源代码的工具，从[lxr](https://lxr.sourceforge.io/en/index.php)移植过来。
 
 核心功能：根据标识符(identifier)查询索引，只支持python，c，go语言。
 
