@@ -55,7 +55,10 @@ trees = {
 
 ```
 
-- 创建tag索引
+在相关代码复制到source_root目录下面。
+
+
+- 创建索引
 
 ```
 python genxref.py redispy
@@ -65,6 +68,12 @@ python genxref.py redispy
 
 ```
 python main.py
+```
+
+- 访问程序
+
+```
+http://localhost:9999/
 ```
 
 # 实现原理
