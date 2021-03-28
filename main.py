@@ -118,7 +118,8 @@ class MainHandler(tornado.web.RequestHandler):
 
         dirs, files = self.files.getdir(self.reqfile)
         # filter ._xxx
-        filenames = [os.path.join(self.reqfile, _f) for _f in files if not _f.startswith('._')]
+        files = [_f for _f in files if not _f.startswith('._')]
+        filenames = [os.path.join(self.reqfile, _f) for _f in files ]
         linecount_dict = {}
         with SwitchEngine(get_engine(self.project_name)):
             objs = File.query.get_many(filenames)
