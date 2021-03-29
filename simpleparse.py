@@ -388,6 +388,7 @@ class AsmParse(SimpleParse):
     reserved = [
                 ]
     spec = [
+        {"open": "/\\*", "close": "*/", "type": "comment"},
         {"open": ";", "close": "\n", "type": "comment"},
         {"open": "//", "close": "\n", "type": "comment"},
         {"open": '"', "close": '"', "type": "string"},
