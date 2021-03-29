@@ -391,6 +391,7 @@ class AsmParse(SimpleParse):
         {"open": "/\\*", "close": "*/", "type": "comment"},
         {"open": ";", "close": "\n", "type": "comment"},
         {"open": "//", "close": "\n", "type": "comment"},
+        {"open": "!", "close": "\n", "type": "comment"},
         {"open": '"', "close": '"', "type": "string"},
         {"open": "'", "close": "'", "type": "string"},
     ]
