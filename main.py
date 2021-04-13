@@ -309,7 +309,7 @@ class MainHandler(tornado.web.RequestHandler):
 
             self.return_ident_page()
         elif self.page == 'source':
-            self.detail['title'] = self.reqfile
+            self.detail['title'] = os.path.basename(self.reqfile)
             self.return_source_page()
         else:
             self.return_index_page()
