@@ -38,6 +38,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.files = None
         self.detail = {}
         self.detail['trees'] = self.get_all_trees()
+        self.detail['title'] = 'pylxr'
         self.detail['pages'] = {
             'source': 'Source navigation',
             'ident': 'Identifier search',
@@ -72,9 +73,9 @@ class MainHandler(tornado.web.RequestHandler):
 
     def return_ident_page(self):
 
-
         ident = self.get_argument('_i', '')
-
+        if ident:
+            self.detail['title'] = ident
         symid = symbolcache.get_symid(self.project_name, ident)
         if not symid:
             defs = []
@@ -305,8 +306,10 @@ class MainHandler(tornado.web.RequestHandler):
         if self.page == 'search':
             self.return_search_page()
         elif self.page == 'ident':
+
             self.return_ident_page()
         elif self.page == 'source':
+            self.detail['title'] = self.reqfile
             self.return_source_page()
         else:
             self.return_index_page()
