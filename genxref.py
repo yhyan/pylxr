@@ -136,9 +136,12 @@ class Genxref(object):
                         _buf = _fp.read()
                     words = self.parses[o.filetype].get_idents(_buf)
                     for word, line in words:
-                        if o.filetype == 'asm' and word[0] == '_':
-                            # 汇编调用C语言函数
-                            _symid = symbolcache.get_symid(self.project_name, word[1:])
+                        if o.filetype == 'asm':
+                            if word[0] == '_':
+                                # 汇编调用C语言函数
+                                _symid = symbolcache.get_symid(self.project_name, word[1:])
+                            else:
+                                _symid = symbolcache.get_symid(self.project_name, word)
                             if _symid is None:
                                 continue
                         else:
