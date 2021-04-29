@@ -11,8 +11,9 @@ def visit_class(class_node):
     for node in class_node.body:
         node_type = node.__class__.__name__
         if node_type in ('AsyncFunctionDef', 'FunctionDef'):
-            if not node.name.startswith("__"):
-                tags.append([node.name, node.lineno, LangType.lang_py + LangType.def_func])
+            if node.name.startswith("__"):
+                continue
+            tags.append([node.name, node.lineno, LangType.lang_py + LangType.def_func])
     return tags
 
 def find_tags(abspath):
