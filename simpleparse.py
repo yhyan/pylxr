@@ -217,7 +217,7 @@ class PythonParse(SimpleParse):
 
     lang = 'python'
     blankre = re.compile('([a-zA-Z0-9_\.]+)')
-    identdef = re.compile('([a-zA-Z]\w+)', re.M)
+    identdef = re.compile('([a-zA-Z_]\w+)', re.M)
     reserved = ['and', 'as', 'assert', 'break', 'class', 'continue', 'def',
                 'del', 'elif', 'else', 'except', 'exec', 'False', 'finally', 'for',
                 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'None', 'not',
