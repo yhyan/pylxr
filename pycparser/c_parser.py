@@ -559,6 +559,7 @@ class CParser(PLYParser):
         """ pp_directive  : PPHASH DEFINE identifier
                         | PPHASH DEFINE identifier identifier
                         | PPHASH DEFINE identifier  constant
+                        | PPHASH DEFINE identifier LPAREN expression RPAREN
         """
         p[0] = c_ast.TypeDecl(
             declname=p[3].name,
