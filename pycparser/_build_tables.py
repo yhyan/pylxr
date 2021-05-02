@@ -26,12 +26,10 @@ from pycparser import c_parser
 # Generates the tables
 #
 c_parser.CParser(
-    lex_optimize=True,
     yacc_debug=False,
-    yacc_optimize=True)
+)
+
 
 # Load to compile into .pyc
 #
-import lextab
-import yacctab
 import c_ast

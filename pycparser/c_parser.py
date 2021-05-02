@@ -159,7 +159,8 @@ class CParser(PLYParser):
             # If name is an identifier in this scope it shadows typedefs in
             # higher scopes.
             in_scope = scope.get(name)
-            if in_scope is not None: return in_scope
+            if in_scope is not None:
+                return in_scope
         return False
 
     def _lex_error_func(self, msg, line, column):

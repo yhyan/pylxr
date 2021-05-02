@@ -64,7 +64,10 @@ class PLYParser(object):
         return self._coord(p.lineno(token_idx), column)
 
     def _parse_error(self, msg, coord):
-        print(ParseError("%s: %s" % (coord, msg)))
+        e = ParseError("%s: %s" % (coord, msg))
+        #raise  e
+        print(e)
+
 
 
 def parameterized(*params):

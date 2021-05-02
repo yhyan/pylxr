@@ -194,7 +194,12 @@ def _repr(obj):
     Get the representation of an object, with dedicated pprint-like format for lists.
     """
     if isinstance(obj, list):
-        return '[' + (',\n '.join((_repr(e).replace('\n', '\n ') for e in obj))) + '\n]'
+        if len(obj) == 0:
+            return '[]'
+        elif len(obj) == 1:
+            return '[' + _repr(obj[0]) + ']'
+        else:
+            return '[' + (',\n '.join((_repr(e).replace('\n', '\n ') for e in obj))) + '\n]'
     else:
         return repr(obj)
 
@@ -217,7 +222,8 @@ class Node(object):
             separator = ','
             indent = '\n ' + (' ' * len(self.__class__.__name__))
 
-        result += indent + ')'
+        # result += indent + ')'
+        result += ')'
 
         return result
 

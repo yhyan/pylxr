@@ -3,24 +3,31 @@
 
 import os
 from pycparser import parse_file
-
+from pycparser.c_generator import CGenerator
 from utils import smart_read
+from tags.c import find_tags2
 
-FNAME = os.path.join(os.path.dirname(__file__), 'test.c')
+FNAME = os.path.join(os.path.dirname(__file__), 't0.c')
 
 
 def test_statements():
 
     ast = parse_file(FNAME)
-    if ast:
-        for c in ast.ext:
+    #v = CGenerator()
+    #v.visit(ast)
+    print('finish done')
+    #print(ast)
+    for n in ast.ext:
+        print(n)
+    #    print(getattr(n, 'type', n))
 
-            print(c.get_name())
 
-
-
+def test_find_tags():
+    tags = find_tags2(FNAME)
+    for tag in tags:
+        print(tag)
 
 if __name__ == "__main__":
-    test_statements()
-    #test_golex()
-    #test_all_python_source_code()
+    #test_statements()
+    test_find_tags()
+

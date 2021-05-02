@@ -1,3 +1,6 @@
+#include<stdio.h>
+#define TEST 1
+
 /* Low level logging. To use only for very big messages, otherwise
  * redisLog() is to prefer. */
 
