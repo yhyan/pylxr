@@ -1,5 +1,6 @@
 import pytest, os, shutil
-from . import golex, statements
+from goparser import golex, statements
+from utils import smart_read
 
 FNAME = os.path.join(os.path.dirname(__file__), 'encode.go')
 
@@ -10,7 +11,7 @@ def test_golex():
 
 
 def test_statements():
-    tokens = golex.lex(open(FNAME).read())
+    tokens = golex.lex(smart_read(FNAME))
     stmts = statements.StatementFinder().parse(tokens)
     print(stmts)
     # assert sum((tokens[tup.slice] for tup in stmts), []) == tokens

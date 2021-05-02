@@ -1,6 +1,7 @@
 import pytest, os, shutil
-from . import c_lexer
-from . import statements
+from cparser import c_lexer
+from cparser import statements
+from utils import smart_read
 
 FNAME = os.path.join(os.path.dirname(__file__), 'test.c')
 
@@ -41,7 +42,7 @@ def test_all_python_source_code():
 
 
 def test_statements():
-    tokens = c_lexer.lex(open(FNAME, encoding='gb2312').read())
+    tokens = c_lexer.lex(smart_read(FNAME))
     stmts = statements.StatementFinder().parse(tokens)
     print(stmts)
     # assert sum((tokens[tup.slice] for tup in stmts), []) == tokens
