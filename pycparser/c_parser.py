@@ -535,11 +535,67 @@ class CParser(PLYParser):
         """
         p[0] = []
 
-    def p_pp_directive(self, p):
-        """ pp_directive  : PPHASH
+
+
+    def p_pp_directive_1(self, p):
+        """ pp_directive  : PPHASH INCLUDE LT headerfile GT
+                          | PPHASH INCLUDE STRING_LITERAL                        
         """
-        self._parse_error('Directives not supported yet',
-                          self._token_coord(p, 1))
+        p[0] = []
+
+    def p_dirfile(self, p):
+        """ dirfile : identifier DIVIDE
+                    | dirfile identifier DIVIDE
+        """
+        p[0] = []
+
+    def p_headerfile(self, p):
+        """ headerfile : identifier PERIOD identifier
+                        | dirfile identifier PERIOD identifier        
+        """
+        p[0] = []
+
+    def p_pp_directive_2(self, p):
+        """ pp_directive  : PPHASH DEFINE identifier
+                        | PPHASH DEFINE identifier identifier
+                        | PPHASH DEFINE identifier  constant
+        """
+        p[0] = c_ast.TypeDecl(
+            declname=p[3].name,
+            type='define',
+            quals=None,
+            coord=self._token_coord(p, 1))
+        # print(p[0], p[0].coord)
+
+    def p_pp_directive_3(self, p):
+        """ pp_directive  : PPHASH DEFINE identifier LPAREN identifier_list RPAREN  statement
+        """
+        p[0] = c_ast.TypeDecl(
+            declname=p[3].name,
+            type='define',
+            quals=None,
+            coord=self._token_coord(p, 1))
+        # print(p[0], p[0].coord)
+
+
+    def p_pp_directive_4(self, p):
+        """ pp_directive  : PPHASH UNDEF identifier  
+                          | PPHASH IFNDEF identifier
+        """
+        p[0] = []
+
+    def p_pp_directive_5(self, p):
+        """ pp_directive  : PPHASH IFDEF identifier
+        """
+        p[0] = []
+
+    def p_pp_directive_6(self, p):
+        """ pp_directive  : PPHASH ELIF 
+                        | PPHASH ENDIF
+                        | PPHASH ELSE
+        """
+        p[0] = []
+
 
     def p_pppragma_directive(self, p):
         """ pppragma_directive      : PPPRAGMA

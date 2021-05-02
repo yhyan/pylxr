@@ -15,7 +15,8 @@ import io
 from .c_parser import CParser
 
 def parse_file(filename,
-               parser=None):
+               parser=None,
+               yacc_debug=False):
     """ Parse a C file using pycparser.
 
         filename:
@@ -33,5 +34,5 @@ def parse_file(filename,
         text = f.read()
 
     if parser is None:
-        parser = CParser()
+        parser = CParser(yacc_debug=yacc_debug)
     return parser.parse(text, filename)

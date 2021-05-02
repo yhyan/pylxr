@@ -19,6 +19,8 @@ def find_tags(abspath):
     :param source_file: 
     :return: tag list 
     '''
+    return find_tags2(abspath)
+
     tags = []
     if os.path.isfile(abspath):
         try:
@@ -45,6 +47,9 @@ def visit_FuncDecl(node, **kwargs):
     return visit_node(node.type, **kwargs)
 
 def visit_TypeDecl(node, **kwargs):
+    print(node)
+    if node.type == 'define':
+        return [(node.declname, node.coord.line, LangType.c_variable)]
     if node.type.__class__.__name__ == 'IdentifierType':
         return [(node.declname, node.coord.line, LangType.c_variable)]
     else:
@@ -80,12 +85,13 @@ def visit_node(node, **kwargs):
     return []
 
 
-def find_tags2(abspath):
+def find_tags2(abspath, yacc_debug=False):
     tags = []
     if os.path.isfile(abspath):
         try:
-            mod = parse_file(abspath)
-            tags = []
+            mod = parse_file(abspath, yacc_debug=yacc_debug)
+            if mod is None:
+                return tags
             for node in mod.ext:
                 tags += visit_node(node)
         except:

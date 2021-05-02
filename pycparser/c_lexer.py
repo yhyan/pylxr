@@ -102,12 +102,14 @@ class CLexer(object):
     keywords = (
         '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
         'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
-        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG', 'VA_LIST',
+        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG',
         'REGISTER', 'OFFSETOF',
         'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
         'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
         'VOLATILE', 'WHILE', '__INT128',
-        'DEFINE',
+
+        # 预处理
+        'DEFINE', 'UNDEF', 'INCLUDE', 'IFDEF', 'IFNDEF', 'ELIF', 'DEFINED', 'ENDIF'
     )
 
     keyword_map = {}
@@ -126,7 +128,7 @@ class CLexer(object):
         # Identifiers
         'ID',
 
-        'COMMENTN', 'COMMENT1', 'DIRE',
+        'COMMENTN', 'COMMENT1',
         # Type identifiers (identifiers previously defined as
         # types with typedef)
         'TYPEID',
@@ -172,6 +174,7 @@ class CLexer(object):
         # Ellipsis (...)
         'ELLIPSIS',
 
+
         # pre-processor
         'PPHASH',       # '#'
         'PPPRAGMA',     # 'pragma'
@@ -190,11 +193,7 @@ class CLexer(object):
         pass
         #return t
 
-    def t_DIRE(self, t):
-        r'[ \t]*\#'
-        t.lexer.lineno += t.value.count('\n')
-        #pass
-        return t
+
 
     ##
     ## Regexes for use in tokens
@@ -528,6 +527,7 @@ class CLexer(object):
         if t.type == 'ID' and self.type_lookup_func(t.value):
             t.type = "TYPEID"
         return t
+
 
     def t_error(self, t):
         msg = 'Illegal character %s' % repr(t.value[0])
