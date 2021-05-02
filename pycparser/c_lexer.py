@@ -102,11 +102,12 @@ class CLexer(object):
     keywords = (
         '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
         'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
-        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG',
+        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG', 'VA_LIST',
         'REGISTER', 'OFFSETOF',
         'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
         'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
         'VOLATILE', 'WHILE', '__INT128',
+        'DEFINE',
     )
 
     keyword_map = {}
@@ -125,6 +126,7 @@ class CLexer(object):
         # Identifiers
         'ID',
 
+        'COMMENTN', 'COMMENT1', 'DIRE',
         # Type identifiers (identifiers previously defined as
         # types with typedef)
         'TYPEID',
@@ -175,6 +177,24 @@ class CLexer(object):
         'PPPRAGMA',     # 'pragma'
         'PPPRAGMASTR',
     )
+
+    def t_COMMENT1(self, t):
+        r"//.*\n"
+        t.lexer.lineno += t.value.count('\n')
+        pass
+        #return t
+
+    def t_COMMENTN(self, t):
+        r"/\*(.|\n)*?\*/"
+        t.lexer.lineno += t.value.count('\n')
+        pass
+        #return t
+
+    def t_DIRE(self, t):
+        r'[ \t]*\#'
+        t.lexer.lineno += t.value.count('\n')
+        #pass
+        return t
 
     ##
     ## Regexes for use in tokens

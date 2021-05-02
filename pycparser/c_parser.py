@@ -20,13 +20,10 @@ from .ast_transforms import fix_switch_cases
 class CParser(PLYParser):
     def __init__(
             self,
-            lex_optimize=True,
             lexer=CLexer,
-            lextab='pycparser.lextab',
             yacc_optimize=True,
-            yacctab='pycparser.yacctab',
             yacc_debug=False,
-            taboutputdir=''):
+    ):
         """ Create a new CParser.
 
             Some arguments for controlling the debug/optimization
@@ -36,24 +33,11 @@ class CParser(PLYParser):
             *) When tweaking CParser/CLexer, set these to False
             *) When releasing a stable parser, set to True
 
-            lex_optimize:
-                Set to False when you're modifying the lexer.
-                Otherwise, changes in the lexer won't be used, if
-                some lextab.py file exists.
-                When releasing with a stable lexer, set to True
-                to save the re-generation of the lexer table on
-                each run.
 
             lexer:
                 Set this parameter to define the lexer to use if
                 you're not using the default CLexer.
 
-            lextab:
-                Points to the lex table that's used for optimized
-                mode. Only if you're modifying the lexer and want
-                some tests to avoid re-generating the table, make
-                this point to a local lex table file (that's been
-                earlier generated with lex_optimize=True)
 
             yacc_optimize:
                 Set to False when you're modifying the parser.
@@ -63,18 +47,11 @@ class CParser(PLYParser):
                 to save the re-generation of the parser table on
                 each run.
 
-            yacctab:
-                Points to the yacc table that's used for optimized
-                mode. Only if you're modifying the parser, make
-                this point to a local yacc table file
 
             yacc_debug:
                 Generate a parser.out file that explains how yacc
                 built the parsing table from the grammar.
 
-            taboutputdir:
-                Set this parameter to control the location of generated
-                lextab and yacctab files.
         """
         self.clex = lexer(
             error_func=self._lex_error_func,
@@ -82,10 +59,7 @@ class CParser(PLYParser):
             on_rbrace_func=self._lex_on_rbrace_func,
             type_lookup_func=self._lex_type_lookup_func)
 
-        self.clex.build(
-            optimize=lex_optimize,
-            lextab=lextab,
-            outputdir=taboutputdir)
+        self.clex.build()
         self.tokens = self.clex.tokens
 
         rules_with_opt = [
@@ -112,9 +86,8 @@ class CParser(PLYParser):
             module=self,
             start='translation_unit_or_empty',
             debug=yacc_debug,
-            optimize=yacc_optimize,
-            tabmodule=yacctab,
-            outputdir=taboutputdir)
+            optimize=yacc_optimize)
+
 
         # Stack of scopes for keeping track of symbols. _scope_stack[-1] is
         # the current (topmost) scope. Each scope is a dictionary that

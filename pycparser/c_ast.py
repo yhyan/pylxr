@@ -50,6 +50,9 @@ class Node(object):
 
         return result
 
+    def get_name(self):
+        return '%s(name=%s)' % (self.__class__.__name__, getattr(self, 'name', ''))
+
     def children(self):
         """ A sequence of all children that are Nodes
         """
@@ -163,6 +166,8 @@ class NodeVisitor(object):
         """
         for c in node:
             self.visit(c)
+
+# 47 ast node (except Node, NodeVisitor)
 
 class ArrayDecl(Node):
     __slots__ = ('type', 'dim', 'dim_quals', 'coord', '__weakref__')

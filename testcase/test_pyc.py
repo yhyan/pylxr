@@ -12,7 +12,10 @@ FNAME = os.path.join(os.path.dirname(__file__), 'test.c')
 def test_statements():
 
     ast = parse_file(FNAME)
-    print(ast)
+    if ast:
+        for c in ast.ext:
+
+            print(c.get_name())
 
 
 
