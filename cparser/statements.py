@@ -135,8 +135,15 @@ class StatementFinder:
                 i -= 1
             return []
 
+        # 忽略函数声明
+        if len(node_list) >= 2:
+            if node_list[-1].type == small_bracket_compound_statement \
+                    and node_list[-2].type == ID:
+                print("ignore func declartion %s " % node_list[-2].value)
+                return []
 
-        # typedef
+
+        # typedef, 变量定义
         tag_list = []
         i = n-1
         finding = True
