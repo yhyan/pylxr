@@ -11,6 +11,11 @@ from files import Files
 from models import File, Symbol, Definitions, Ref, init_db, create_session
 from tags.base import find_tags
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 class Genxref(object):
 
 
@@ -41,7 +46,7 @@ class Genxref(object):
         for k, v in parses.items():
             self.parses[k] = v(self.project_name, self.project_path)
 
-        print(self.parses)
+
 
         self.pathname_to_obj = {}
         
@@ -89,6 +94,7 @@ class Genxref(object):
             else:
                 o = self.pathname_to_obj[pathname]
                 if o.filetype in self.parses and not o.has_indexed():
+                    logger.info('find tags: %s' % pathname)
                     tags = find_tags(self.files.toreal(pathname), o.filetype)
                     for tag in tags:
                         sym, line, lang_typeid = tag
@@ -173,8 +179,7 @@ class Genxref(object):
 
                     
 if __name__ == "__main__":
-    from conf import  trees
-    import sys
+    from conf import trees
 
     project_name = sys.argv[1]
     if project_name not in trees:

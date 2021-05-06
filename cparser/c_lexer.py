@@ -14,6 +14,215 @@ from ply.lex import TOKEN
 
 # reference：https://github.com/eliben/pycparser.git
 
+##
+## Reserved keywords
+##
+keywords = (
+    '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
+    'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
+    'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG', 'VA_LIST',
+    'REGISTER', 'OFFSETOF',
+    'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
+    'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
+    'VOLATILE', 'WHILE', '__INT128',
+
+    # 预处理
+    'DEFINE', 'UNDEF', 'INCLUDE', 'IFDEF', 'IFNDEF', 'ELIF', 'DEFINED', 'ENDIF'
+)
+
+keyword_map = {}
+for keyword in keywords:
+    if keyword == '_BOOL':
+        keyword_map['_Bool'] = keyword
+    elif keyword == '_COMPLEX':
+        keyword_map['_Complex'] = keyword
+    else:
+        keyword_map[keyword.lower()] = keyword
+
+##
+## All the tokens recognized by the lexer
+##
+c_tokens = keywords + (
+    # Identifiers
+    'ID',
+
+    # 'COMMENTN','COMMENT1',
+    'HASHKEY',
+    # Type identifiers (identifiers previously defined as
+    # types with typedef)
+    # 'TYPEID',
+
+    # constants
+    'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX', 'INT_CONST_BIN', 'INT_CONST_CHAR',
+    'FLOAT_CONST', 'HEX_FLOAT_CONST',
+    'CHAR_CONST',
+    'WCHAR_CONST',
+
+    # String literals
+    'STRING_LITERAL',
+    'WSTRING_LITERAL',
+
+    # 'WS',
+    'NEWLINE', 'BLANK',
+
+    # Operators
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD',
+    'OR', 'AND', 'NOT', 'XOR', 'LSHIFT', 'RSHIFT',
+    'LOR', 'LAND', 'LNOT',
+    'LT', 'LE', 'GT', 'GE', 'EQ', 'NE',
+
+    'ESC',
+
+    # Assignment
+    'EQUALS', 'TIMESEQUAL', 'DIVEQUAL', 'MODEQUAL',
+    'PLUSEQUAL', 'MINUSEQUAL',
+    'LSHIFTEQUAL', 'RSHIFTEQUAL', 'ANDEQUAL', 'XOREQUAL',
+    'OREQUAL',
+
+    # Increment/decrement
+    'PLUSPLUS', 'MINUSMINUS',
+
+    # Structure dereference (->)
+    'ARROW',
+
+    # Conditional operator (?)
+    'CONDOP',
+
+    # Delimeters
+    'LPAREN', 'RPAREN',  # ( )
+    'LBRACKET', 'RBRACKET',  # [ ]
+    'LBRACE', 'RBRACE',  # { }
+    'COMMA', 'PERIOD',  # . ,
+    'SEMI', 'COLON',  # ; :
+
+    # Ellipsis (...)
+    'ELLIPSIS',
+
+    # pre-processor
+    'PPHASH',  # '#'
+    'PPPRAGMA',  # 'pragma'
+    'PPPRAGMASTR',
+)
+
+# for _name, j in enumerate(c_tokens):
+#    globals()[_name] = j + 1
+
+
+_BOOL = 1
+_COMPLEX = 2
+AUTO = 3
+BREAK = 4
+CASE = 5
+CHAR = 6
+CONST = 7
+CONTINUE = 8
+DEFAULT = 9
+DO = 10
+DOUBLE = 11
+ELSE = 12
+ENUM = 13
+EXTERN = 14
+FLOAT = 15
+FOR = 16
+GOTO = 17
+IF = 18
+INLINE = 19
+INT = 20
+LONG = 21
+VA_LIST = 22
+REGISTER = 23
+OFFSETOF = 24
+RESTRICT = 25
+RETURN = 26
+SHORT = 27
+SIGNED = 28
+SIZEOF = 29
+STATIC = 30
+STRUCT = 31
+SWITCH = 32
+TYPEDEF = 33
+UNION = 34
+UNSIGNED = 35
+VOID = 36
+VOLATILE = 37
+WHILE = 38
+__INT128 = 39
+DEFINE = 40
+UNDEF = 41
+INCLUDE = 42
+IFDEF = 43
+IFNDEF = 44
+ELIF = 45
+DEFINED = 46
+ENDIF = 47
+ID = 48
+HASHKEY = 49
+INT_CONST_DEC = 50
+INT_CONST_OCT = 51
+INT_CONST_HEX = 52
+INT_CONST_BIN = 53
+INT_CONST_CHAR = 54
+FLOAT_CONST = 55
+HEX_FLOAT_CONST = 56
+CHAR_CONST = 57
+WCHAR_CONST = 58
+STRING_LITERAL = 59
+WSTRING_LITERAL = 60
+NEWLINE = 61
+BLANK = 62
+PLUS = 63
+MINUS = 64
+TIMES = 65
+DIVIDE = 66
+MOD = 67
+OR = 68
+AND = 69
+NOT = 70
+XOR = 71
+LSHIFT = 72
+RSHIFT = 73
+LOR = 74
+LAND = 75
+LNOT = 76
+LT = 77
+LE = 78
+GT = 79
+GE = 80
+EQ = 81
+NE = 82
+ESC = 83
+EQUALS = 84
+TIMESEQUAL = 85
+DIVEQUAL = 86
+MODEQUAL = 87
+PLUSEQUAL = 88
+MINUSEQUAL = 89
+LSHIFTEQUAL = 90
+RSHIFTEQUAL = 91
+ANDEQUAL = 92
+XOREQUAL = 93
+OREQUAL = 94
+PLUSPLUS = 95
+MINUSMINUS = 96
+ARROW = 97
+CONDOP = 98
+LPAREN = 99
+RPAREN = 100
+LBRACKET = 101
+RBRACKET = 102
+LBRACE = 103
+RBRACE = 104
+COMMA = 105
+PERIOD = 106
+SEMI = 107
+COLON = 108
+ELLIPSIS = 109
+PPHASH = 110
+PPPRAGMA = 111
+PPPRAGMASTR = 112
+
+
+
 class CTok(object):
 
 
@@ -22,6 +231,8 @@ class CTok(object):
         """
         last_cr = token.lexer.lexdata.rfind('\n', 0, token.lexpos)
         return token.lexpos - last_cr
+
+    tokens = c_tokens
 
     ######################--   PRIVATE   --######################
 
@@ -37,106 +248,23 @@ class CTok(object):
     def _make_tok_location(self, token):
         return (token.lineno, self.find_tok_column(token))
 
-    ##
-    ## Reserved keywords
-    ##
-    keywords = (
-        '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
-        'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
-        'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG', 'VA_LIST',
-        'REGISTER', 'OFFSETOF',
-        'RESTRICT', 'RETURN', 'SHORT', 'SIGNED', 'SIZEOF', 'STATIC', 'STRUCT',
-        'SWITCH', 'TYPEDEF', 'UNION', 'UNSIGNED', 'VOID',
-        'VOLATILE', 'WHILE', '__INT128',
-        'DEFINE',
-    )
 
-    keyword_map = {}
-    for keyword in keywords:
-        if keyword == '_BOOL':
-            keyword_map['_Bool'] = keyword
-        elif keyword == '_COMPLEX':
-            keyword_map['_Complex'] = keyword
-        else:
-            keyword_map[keyword.lower()] = keyword
-
-    ##
-    ## All the tokens recognized by the lexer
-    ##
-    tokens = keywords + (
-        # Identifiers
-        'ID',
-
-        'COMMENTN','COMMENT1', 'DIRE',
-        # Type identifiers (identifiers previously defined as
-        # types with typedef)
-        #'TYPEID',
-
-        # constants
-        'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX', 'INT_CONST_BIN', 'INT_CONST_CHAR',
-        'FLOAT_CONST', 'HEX_FLOAT_CONST',
-        'CHAR_CONST',
-        'WCHAR_CONST',
-
-        # String literals
-        'STRING_LITERAL',
-        'WSTRING_LITERAL',
-
-       # 'WS',
-        'NEWLINE', 'BLANK',
-
-        # Operators
-        'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MOD',
-        'OR', 'AND', 'NOT', 'XOR', 'LSHIFT', 'RSHIFT',
-        'LOR', 'LAND', 'LNOT',
-        'LT', 'LE', 'GT', 'GE', 'EQ', 'NE',
-
-        'ESC',
-
-        # Assignment
-        'EQUALS', 'TIMESEQUAL', 'DIVEQUAL', 'MODEQUAL',
-        'PLUSEQUAL', 'MINUSEQUAL',
-        'LSHIFTEQUAL','RSHIFTEQUAL', 'ANDEQUAL', 'XOREQUAL',
-        'OREQUAL',
-
-        # Increment/decrement
-        'PLUSPLUS', 'MINUSMINUS',
-
-        # Structure dereference (->)
-        'ARROW',
-
-        # Conditional operator (?)
-        'CONDOP',
-
-        # Delimeters
-        'LPAREN', 'RPAREN',         # ( )
-        'LBRACKET', 'RBRACKET',     # [ ]
-        'LBRACE', 'RBRACE',         # { }
-        'COMMA', 'PERIOD',          # . ,
-        'SEMI', 'COLON',            # ; :
-
-        # Ellipsis (...)
-        'ELLIPSIS',
-
-        # pre-processor
-        'PPHASH',       # '#'
-        'PPPRAGMA',     # 'pragma'
-        'PPPRAGMASTR',
-    )
 
     def t_COMMENT1(self, t):
         r"//.*\n"
-        t.lexer.lineno += t.value.count('\n')
+        t.lexer.lineno += t.value.count('\n')-1
+        # 返回一个NEWLINE
+        t.lexer.skip(-1)
         #pass
-        return t
+        #return t
 
     def t_COMMENTN(self, t):
         r"/\*(.|\n)*?\*/"
         t.lexer.lineno += t.value.count('\n')
         #pass
-        return t
+        #return t
 
-    def t_DIRE(self, t):
+    def t_HASHKEY(self, t):
         r'[ \t]*\#'
         t.lexer.lineno += t.value.count('\n')
         #pass
@@ -144,7 +272,7 @@ class CTok(object):
 
     #t_ignore_COMMENT = r"//.*\n"
     #t_ignore_COMMENT1 = r"/\*(.|\n)*?\*/"
-    #t_ignore_DIRE = r'[ \t]*\#.*\n'
+    #t_ignore_HASHKEY = r'[ \t]*\#.*\n'
 
 
     ##
@@ -240,12 +368,15 @@ class CTok(object):
     def t_NEWLINE(self, t):
         r'\n+'
         t.lexer.lineno += t.value.count("\n")
+        t.value = '\n'
         return t
 
     def t_BLANK(self, t):
         r'\s+'
         t.lexer.lineno += t.value.count("\n")
-        return t
+        #return t
+        pass
+
 
     # Operators
     t_PLUS              = r'\+'
@@ -268,6 +399,7 @@ class CTok(object):
     t_GE                = r'>='
     t_EQ                = r'=='
     t_NE                = r'!='
+
 
     t_ESC               = r'\\'
 
@@ -399,7 +531,7 @@ class CTok(object):
 
     @TOKEN(identifier)
     def t_ID(self, t):
-        t.type = self.keyword_map.get(t.value, "ID")
+        t.type = keyword_map.get(t.value, "ID")
         #if t.type == 'ID' and self.type_lookup_func(t.value):
         #    t.type = "TYPEID"
         return t
@@ -413,10 +545,19 @@ def lex(string):
     lexer = ply.lex.lex(module=CTok(), reflags=re.UNICODE)
     lexer.input(string)
     a = []
+    g_dict = globals()
     while 1:
         t = lexer.token()
         if t:
-            a.append(t)
+            if t.type == "ESC":
+                next_t = lexer.token()
+                # 转义符号后面是注释，则得不到换行符
+                if next_t and next_t.lineno == t.lineno and next_t.type != "NEWLINE":
+                    raise Exception("ESC之后没有一个换行符 %s %s" % (t, next_t))
+                # do nothing, 忽略 一个转义符 和 一个NEWLINE
+            else:
+                t.type = g_dict[t.type]
+                a.append(t)
         else:
             return a
 

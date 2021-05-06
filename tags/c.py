@@ -19,7 +19,7 @@ def find_tags(abspath):
     :param source_file: 
     :return: tag list 
     '''
-    return find_tags2(abspath)
+    # return find_tags2(abspath)
 
     tags = []
     if os.path.isfile(abspath):

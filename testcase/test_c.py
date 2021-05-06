@@ -1,3 +1,4 @@
+import sys
 import pytest, os, shutil
 from cparser import c_lexer
 from cparser import statements
@@ -5,21 +6,21 @@ from utils import smart_read
 
 FNAME = os.path.join(os.path.dirname(__file__), 'test.c')
 
-def test_golex():
-    orig = open(FNAME).read()
+def test_golex(f):
+    orig = open(f).read()
     tokens = c_lexer.lex(orig)
     ss = [t.value for t in tokens]
     print(''.join(ss))
     #for token in tokens:
     #    print('%stoken.value,)
-    assert c_lexer.unlex(tokens) == orig
+    #assert c_lexer.unlex(tokens) == orig
 
     type_set = set()
     for t in tokens:
         type_set.add(t.type)
     print(type_set)
 
-def test_all_python_source_code():
+def test_all_python_source_code(f):
     CURDIR = os.path.abspath(os.path.dirname(__file__))
     project_path = os.path.abspath(os.path.join(CURDIR, '..'))
 
@@ -41,15 +42,22 @@ def test_all_python_source_code():
     print(type_set)
 
 
-def test_statements():
-    tokens = c_lexer.lex(smart_read(FNAME))
+def test_statements(f):
+    tokens = c_lexer.lex(smart_read(f))
     stmts = statements.StatementFinder().parse(tokens)
-    print(stmts)
+    for token in stmts:
+        print(token)
+
     # assert sum((tokens[tup.slice] for tup in stmts), []) == tokens
 
 
 
 if __name__ == "__main__":
-    test_statements()
-    #test_golex()
-    #test_all_python_source_code()
+    if len(sys.argv) > 1:
+        f = sys.argv[1]
+    else:
+        f = FNAME
+
+    test_statements(f)
+    #test_golex(f)
+    #test_all_python_source_code(f)
