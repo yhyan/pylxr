@@ -12,8 +12,11 @@ from models import File, Symbol, Definitions, Ref, init_db, create_session
 from tags.base import find_tags
 
 import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from log import configure_logging
+
+configure_logging()
+
+logger = logging.getLogger('fordeploy')
 
 
 class Genxref(object):

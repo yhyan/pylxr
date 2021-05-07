@@ -9,9 +9,8 @@ from enum import Enum
 
 
 import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger('fordeploy')
 
 
 develop_debug = False
@@ -21,41 +20,92 @@ develop_debug = False
 # 也要保留。
 from .c_lexer import LPAREN, LBRACE, LBRACKET, RPAREN, RBRACE, RBRACKET,\
     NEWLINE, SEMI,\
-    HASHKEY, DEFINE,\
+    HASHKEY, DEFINE, INCLUDE, UNDEF, IF, IFDEF, IFNDEF, ELIF, ELSE, ENDIF, \
     TYPEDEF, STRUCT, UNION, ENUM, \
     ID, COMMA, EQUALS
 
 
-small_bracket_compound_statement = 0
-mid_bracket_compound_statement = 1
-large_bracket_compound_statement = 2
+small_bracket_compound_statement = 200
+mid_bracket_compound_statement = 201
+large_bracket_compound_statement = 202
+
+include_node = 203
+define_node = 204
+undef_node = 205
+line_macro_node = 206
+error_macro_node = 207
+pragma_macro_node = 208
+
+if_macro_node = 209
+ifdef_macro_node = 210
+ifndef_macro_node = 211
+elif_macro_node = 212
+else_macro_node = 213
+endif_macro_node = 214
+
+def is_terminal_node(token):
+    return token.type < 200
+
 
 class NonTerminalNode(object):
-    def __init__(self, tokens, start_index, end_index, node_type):
+    def __init__(self, tokens, node_type, **kwargs):
         # tokens[start_index:end_index+1]
         self.tokens = tokens
-        self.start_index = start_index
-        self.end_index = end_index
+        self.n = len(tokens)
         self.type = node_type
+        self.kwargs = kwargs
 
     def get_first_id(self):
-        i = self.start_index
-        while i <= self.end_index:
+        i = 0
+        while i < self.n:
             if self.tokens[i].type == ID:
                 return self.tokens[i]
             i += 1
         return None
 
-    def print_value(self, end=''):
+    def get_str(self, end=''):
         #logger.debug('start nontermial node:')
-        return ''.join([self.tokens[i].value for i in range(self.start_index, self.end_index+1)])
+        return ''.join([t.value for t in self.tokens])
 
     def __str__(self):
-        return 'NonTermial(i=%s,j=%s, type=%s)' % (self.start_index, self.end_index, self.type)
+        return 'NonTermial(start_line=%s, start_value=%s, end_line=%s, env_value=%s, type=%s)' % (
+            self.tokens[0].lineno,
+            self.tokens[0].value,
+            self.tokens[-1].lineno,
+            self.tokens[-1].value,
+            self.type)
 
     def __repr__(self):
         return self.__str__()
 
+
+    def get_token_list(self):
+        tokens = self.tokens
+        if self.type in (if_macro_node, ifdef_macro_node, ifndef_macro_node):
+            terminal_token_list = []
+            i = 3
+            n = self.n
+            end_index = -1
+            while i < n:
+                if tokens[i-1].type == HASHKEY and tokens[i].type in (ELIF, ELSE, ENDIF):
+                    end_index = i - 2
+                    break
+                else:
+                    i += 1
+            i = 0
+            while  i < n and tokens[i].type != NEWLINE:
+                i += 1
+
+            while i <= end_index:
+                node = self.tokens[i]
+                if is_terminal_node(node):
+                    terminal_token_list.append(node)
+                else:
+                    terminal_token_list += node.get_token_list()
+                i += 1
+            return terminal_token_list
+        else:
+            return tokens
 
 
 
@@ -72,7 +122,7 @@ def debug_token_type(tokens, i):
 
 
 
-class StatementFinder:
+class StatementFinder(object):
     "see docs for parse() method"
 
     char_dict = {
@@ -89,11 +139,35 @@ class StatementFinder:
         LPAREN: small_bracket_compound_statement,
         LBRACKET: mid_bracket_compound_statement,
         LBRACE: large_bracket_compound_statement,
+
+        DEFINE: define_node,
+        INCLUDE: include_node,
+        UNDEF: undef_node,
+
+        IF:if_macro_node,
+        IFDEF:ifdef_macro_node,
+        IFNDEF:ifndef_macro_node,
+        ELIF:elif_macro_node,
+        ELSE:else_macro_node,
+        ENDIF:endif_macro_node,
     }
 
-    def __init__(self, tokens=[]):
+    def __init__(self, tokens=[], lines=[]):
+        self.lines = lines
         self.tokens = tokens
+        self.n = 0
         self.tags = []
+        self.nodes = []
+        self.defines = {}
+
+    def input(self, tokens):
+        assert  isinstance(tokens, list)
+        assert len(tokens) > 0, "input tokens list can't be empty"
+        self.tokens = tokens
+        self.n = len(tokens)
+        self.tags = []
+        self.nodes = []
+        self.defines = {}
 
 
     def parse_tag_from_decl(self, node_list):
@@ -139,7 +213,7 @@ class StatementFinder:
         if len(node_list) >= 2:
             if node_list[-1].type == small_bracket_compound_statement \
                     and node_list[-2].type == ID:
-                print("ignore func declartion %s " % node_list[-2].value)
+                logger.debug("ignore func declartion %s " % node_list[-2].value)
                 return []
 
 
@@ -184,18 +258,20 @@ class StatementFinder:
 
 
     def find_right_bracket(self, j, tokens):
-        bracket_stack = [tokens[j].type]
+        bracket_stack = [j]
         j += 1
         n = len(tokens)
         while j < n:
             if tokens[j].type in set([LPAREN, LBRACE, LBRACKET]):
-                bracket_stack.append(tokens[j].type)
-            elif tokens[j].type == self.char_dict[bracket_stack[-1]]:
+                bracket_stack.append(j)
+            elif tokens[j].type == self.char_dict[tokens[bracket_stack[-1]].type]:
                 bracket_stack.pop()
                 if len(bracket_stack) == 0:
                     return j
             j += 1
-        raise Exception("can't find right bracket")
+        if j >= n and len(bracket_stack) == 0:
+            return j
+        raise Exception("can't find right bracket: %s" % tokens[bracket_stack[-1]])
 
 
 
@@ -206,13 +282,13 @@ class StatementFinder:
 
         while i < n:
             tok = tokens[i]
-            # logger.info('%s %s %s %s' % (tokens[j], tokens[i], j, i))
+            logger.debug('%s %s' % (tokens[i], i))
 
             if tok.type in set([LPAREN, LBRACE, LBRACKET]):
 
                 next_i = self.find_right_bracket(i, tokens)
 
-                node_list.append(NonTerminalNode(tokens, i, next_i, self.non_term_type_dict[tok.type]))
+                node_list.append(NonTerminalNode(tokens[i:next_i+1], self.non_term_type_dict[tok.type]))
                # print(node_list)
                 # (){} 语句后面一个换行符 表示函数
 
@@ -254,34 +330,143 @@ class StatementFinder:
         max_length = len(tokens)
 
         i = 0
-        last_j = None
         while i < max_length:
             # find new global statement
-
             decl, next_i = self.find_decl(i, tokens)
             i = next_i
             if decl is not None:
                 global_decls.append(decl)
 
-
-
-
-
         return global_decls
 
 
+    def find_if_macro_node(self, i):
+        # tokens[i,i+1] == #if or #ifdef #ifndef
+
+        n = self.n
+        tokens = self.tokens
+        my_nodes = [tokens[i], tokens[i+1]]
+
+        j = i + 2
+        while j < n:
+            # endif 结束
+            if tokens[j-1].type == HASHKEY and tokens[j].type == ENDIF:
+                my_nodes.append(tokens[j])
+                node = NonTerminalNode(my_nodes, if_macro_node)
+                return node, j+1
+            elif tokens[j-1].type == HASHKEY and tokens[j].type in (IF, IFDEF, IFNDEF):
+                # 上次多 append 了一个 #，删除
+                my_nodes.pop()
+                node, next_j = self.find_if_macro_node(j-1)
+                if node is not None:
+                    my_nodes.append(node)
+                j = next_j
+            else:
+                my_nodes.append(tokens[j])
+                j += 1
+        raise Exception("can't find #endif: %s" % my_nodes[-1] if len(my_nodes) > 0 else tokens[-1])
+
+
+    def find_macro_node(self, i):
+        # self.tokens[i] == '#'
+        n = self.n
+        tokens = self.tokens
+        # end of tokens
+        if i+1 >= n:
+            return None, n
+        token_type = tokens[i+1].type
+        if token_type == DEFINE:
+            j = i + 2
+            while j < n and tokens[j].type != NEWLINE:
+                j += 1
+            if j == n:
+                return None, n
+            node = NonTerminalNode(tokens[i:j], define_node)
+            return node, j
+        elif token_type == INCLUDE:
+            # 忽略 #include 指令
+            j = i + 2
+            while j < n and tokens[j].type != NEWLINE:
+                j += 1
+            return None, j
+        elif token_type == UNDEF:
+            # 忽略undef指令
+            j = i + 2
+            if j < n and tokens[j].type == ID:
+                self.defines.pop(tokens[j].value,'')
+            while j < n and tokens[j].type != NEWLINE:
+                j += 1
+            return None, j
+        elif token_type in (IF, IFDEF, IFNDEF):
+            node, next_i = self.find_if_macro_node(i)
+            return node, next_i
+        else:
+            while i < n and tokens[i].type != NEWLINE:
+                i += 1
+            return None, i
+
+
+
+    def parse_macros(self):
+        i = 0
+        n = self.n
+        while i < n:
+            if self.tokens[i].type == HASHKEY:
+                macro_node, next_i = self.find_macro_node(i)
+                if macro_node:
+                    self.nodes.append(macro_node)
+                i = next_i
+            else:
+                self.nodes.append(self.tokens[i])
+                i += 1
+       # print('finish parse macro nodes')
+
+        terminal_token_list = []
+        for node in self.nodes:
+            if is_terminal_node(node):
+                terminal_token_list.append(node)
+                #print(node)
+            else:
+              #for lino in range(node.tokens[0].lineno, node.tokens[-1].lineno+1):
+              #    print("%04d %s" % (lino, self.lines[lino-1]))
+              #print('\n')
+              #print(' '.join([t.value for t in node.get_token_list()]))
+              #print('\n')
+              #print(node)
+              #print('\n'*3)
+              #
+              #for t in node.tokens:
+              #    print(t)
+
+                terminal_token_list += node.get_token_list()
+        return terminal_token_list
+
+
+
+
     def print_decl(self, decl):
-        print('start statement:')
+        strs = []
+        strs.append('start statement:')
         for node in decl:
             if isinstance(node, NonTerminalNode):
-                print(node.print_value(), end='')
+                strs.append(node.get_str())
             else:
-                print("%s" % node.value, end='')
-        print()
+                strs.append("%s" % node.value)
+        s = ''.join(strs) + '\n'
+        logger.debug(s)
 
 
-    def parse(self, tokens, debug=False):
+
+    def parse(self, tokens):
         "return list of tuples from STATEMENTS / NegativeSlice"
+
+        self.input(tokens)
+
+        tokens = self.parse_macros()
+       # s = (' '.join([t.value for t in tokens]))
+       # with open('/tmp/t.c', 'w') as fp:
+       #     fp.write(s)
+
         decls = self.parse_global_decls(tokens)
 
         tag_list = []

@@ -1,22 +1,14 @@
-#include<stdio.h>
-#define TEST \
- 1
-
-/* Low level logging. To use only for very big messages, otherwise
- * redisLog() is to prefer. */
-
-int a;
-
-/* 扫描码0x3A-0x49 对应的ASCII 码 */
-
-void redisLogRaw(int level, const char *msg) {
-   int c;
-
-}
-
-
-struct stest {
-
- int a;
- int b;
-};
+#ifdef USLEEP
+	else {
+	    if (!disconnect && hostdata->time_expires && jiffies >
+		hostdata->time_expires) {
+		hostdata->time_expires = jiffies + USLEEP_SLEEP;
+#if (NDEBUG & NDEBUG_USLEEP)
+		printk("scsi%d : poll timed out, sleeping until %ul\n", instance->host_no,
+		    hostdata->time_expires);
+#endif
+		NCR5380_set_timer (instance);
+		return;
+	    }
+	}
+#endif

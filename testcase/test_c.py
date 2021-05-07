@@ -43,8 +43,10 @@ def test_all_python_source_code(f):
 
 
 def test_statements(f):
-    tokens = c_lexer.lex(smart_read(f))
-    stmts = statements.StatementFinder().parse(tokens)
+    txt = smart_read(f)
+    lines = txt.split('\n')
+    tokens = c_lexer.lex(txt)
+    stmts = statements.StatementFinder(tokens, lines).parse(tokens)
     for token in stmts:
         print(token)
 

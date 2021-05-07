@@ -26,7 +26,9 @@ def find_tags(abspath):
         try:
             txt = smart_read(abspath)
             tokens = c_lexer.lex(txt)
-            tags = statements.StatementFinder().parse(tokens)
+            lines = txt.split('\n')
+            parser = statements.StatementFinder(tokens, lines)
+            tags = parser.parse(tokens)
         except:
             import traceback
             print(abspath, '\n', traceback.format_exc())
