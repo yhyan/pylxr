@@ -83,4 +83,16 @@ http://localhost:9999/
 核心点在于编写每种编程语言的parser。
 
 
+# 一些语法解析参考
+
+- [esprima-python](https://github.com/yhyan/esprima-python): javascript 语法解析
+- [javalang](https://github.com/c2nes/javalang): java 语法解析
+- [pygoparser](https://github.com/abe-winter/pygoparser) golang 语法解析
+- [pycparser](https://github.com/eliben/pycparser) c 语法解析
+
+
+
+
+
+
 
