@@ -85,6 +85,12 @@ class NonTerminalNode(object):
             terminal_token_list = []
             i = 3
             n = self.n
+
+            # if 0
+           # print(tokens[2], tokens[1], tokens[0], tokens[3])
+            if self.type == if_macro_node and tokens[2].value in (0, '0'):
+                return []
+
             end_index = -1
             while i < n:
                 if tokens[i-1].type == HASHKEY and tokens[i].type in (ELIF, ELSE, ENDIF):
@@ -345,6 +351,7 @@ class StatementFinder(object):
 
         n = self.n
         tokens = self.tokens
+        token_type = tokens[i+1].type
         my_nodes = [tokens[i], tokens[i+1]]
 
         j = i + 2
@@ -352,7 +359,7 @@ class StatementFinder(object):
             # endif 结束
             if tokens[j-1].type == HASHKEY and tokens[j].type == ENDIF:
                 my_nodes.append(tokens[j])
-                node = NonTerminalNode(my_nodes, if_macro_node)
+                node = NonTerminalNode(my_nodes, self.non_term_type_dict[token_type])
                 return node, j+1
             elif tokens[j-1].type == HASHKEY and tokens[j].type in (IF, IFDEF, IFNDEF):
                 # 上次多 append 了一个 #，删除

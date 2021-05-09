@@ -12,6 +12,10 @@ import sys
 import ply
 from ply.lex import TOKEN
 
+import logging
+
+logger = logging.getLogger('fordeploy')
+
 # reference：https://github.com/eliben/pycparser.git
 
 ##
@@ -553,7 +557,9 @@ def lex(string):
                 next_t = lexer.token()
                 # 转义符号后面是注释，则得不到换行符
                 if next_t and next_t.lineno == t.lineno and next_t.type != "NEWLINE":
-                    raise Exception("ESC之后没有一个换行符 %s %s" % (t, next_t))
+                    err_msg = ("ESC之后没有一个换行符 %s %s" % (t, next_t))
+                    #raise Exception(err_msg)
+                    logger.error(err_msg)
                 # do nothing, 忽略 一个转义符 和 一个NEWLINE
             else:
                 t.type = g_dict[t.type]
