@@ -783,7 +783,7 @@ def parse_file_to_html(reqfile, project_name, project_path):
 
     from files import get_file_type
     idx = filename.rfind(".")
-    ext = filename[idx + 1:].lower() if i > 0  else None
+    ext = filename[idx + 1:].lower() if idx > 0  else None
 
     file_type = get_file_type(ext)
     if file_type == 'python':
