@@ -744,7 +744,7 @@ def parse_file_to_html(reqfile, project_name, project_path):
         parse = PythonParse(project_name, project_path)
     elif filename.endswith(".c"):
         parse = CParse(project_name, project_path)
-    elif filename.endswith(".cpp"):
+    elif filename.endswith(".cpp") or filename.endswith('.cxx'):
         parse = CPPParse(project_name, project_path)
     elif filename.endswith(".h"):
         parse = CPPParse(project_name, project_path)

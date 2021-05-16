@@ -78,7 +78,7 @@ class Files(object):
             return 'python'
         elif ext == 'c':
             return 'c'
-        elif ext == 'cpp' or ext == 'cc' or ext == 'hpp':
+        elif ext == 'cpp' or ext == 'cc' or ext == 'hpp' or ext == 'cxx':
             return 'c++'
         elif ext == 'h':
             return 'c++'
