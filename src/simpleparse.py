@@ -727,6 +727,46 @@ class CmakeParse(SimpleParse):
                 kk.append(i)
         return ''.join(kk)
 
+class MakeParse(SimpleParse):
+    lang = 'make'
+    blankre = re.compile('([\s\<\>"])', re.M)
+    identdef = re.compile('([a-zA-Z_]\w+)', re.M)
+
+    cmds = []
+
+    reserved = []
+    for k in cmds:
+        reserved.append(k.lower())
+        reserved.append(k.upper())
+
+    spec = [
+        {"open": "#", "close": "\n", "type": "comment"},
+        {"open": '"', "close": '"', "type": "string"},
+        {"open": "'", "close": "'", "type": "string"},
+        # {"open": '#pa', "close": '\n', "type": "include"}
+    ]
+
+
+
+    def _parse_code(self, frag):
+        ss = self.identdef.split(frag)
+        kk = []
+        for i in ss:
+            if not i:
+                continue
+            if i == '<':
+                i = "&lt;"
+            elif i == '>':
+                i = "&gt;"
+
+            if self.is_reserved(i):
+                kk.append(self.get_reserved_link(i))
+            elif self.is_ident(i):
+                kk.append(self.get_ident_link(i))
+            else:
+                i = i.replace("<", "&lt;").replace(">", "&gt;")
+                kk.append(i)
+        return ''.join(kk)
 
 
 parses = {
@@ -754,6 +794,8 @@ def parse_file_to_html(reqfile, project_name, project_path):
         parse = AsmParse(project_name, project_path)
     elif filename == 'cmakelists.txt':
         parse = CmakeParse(project_name, project_path)
+    elif filename == 'makefile':
+        parse = MakeParse(project_name, project_path)
     else:
         parse = None
     if parse:
