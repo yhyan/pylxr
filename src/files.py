@@ -25,10 +25,7 @@ def get_file_type(ext):
     elif ext == 'java':
         return 'java'
 
-    if pathname == 'makefile':
-        return 'makefile'
-    elif pathname == 'readme':
-        return 'readme'
+
 
     return None
 
@@ -103,6 +100,11 @@ class Files(object):
         _type = get_file_type(ext)
         if _type is not None:
             return _type
+
+        if pathname == 'makefile':
+            return 'makefile'
+        elif pathname == 'readme':
+            return 'readme'
 
         if self.istext(pathname):
             from utils import smart_read
