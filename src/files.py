@@ -1,5 +1,12 @@
 import os
-import string 
+
+def to_real_path(project_root_path, pathname):
+    if pathname == '/':
+        return project_root_path
+    if pathname.startswith("/"):
+        pathname = pathname[1:]
+    return os.path.realpath(os.path.join(project_root_path, pathname))
+
 
 class Files(object):
     '''
@@ -66,6 +73,7 @@ class Files(object):
             ext = pathname[idx+1:].lower()
         else:
             ext = None
+
         if ext == 'py':
             return 'python'
         elif ext == 'c':
@@ -78,6 +86,10 @@ class Files(object):
             return 'go'
         elif ext == 's':
             return 'asm'
+        elif ext == 'js' or ext == 'ts':
+            return 'javascript'
+        elif ext == 'java':
+            return 'java'
 
         if pathname == 'makefile':
             return 'makefile'
@@ -85,6 +97,22 @@ class Files(object):
             return 'readme'
 
         if self.istext(pathname):
+            with open(self.toreal(pathname)) as fp:
+                lines = fp.readlines()
+            for li in lines:
+                li = li.strip()
+                if not li:
+                    continue
+                cpp_tags = [
+                    'ifdef',
+                    'ifndef',
+                    'define',
+                    'include',
+                ]
+                if li[0] == '#':
+                    for tag in cpp_tags:
+                        if li.find(tag) > 0:
+                            return 'c++'
             return 'text'
         return 'bin'
 
@@ -109,13 +137,6 @@ class Files(object):
             return True
         return False
 
-
-    def parseable(self, pathname):
-        ftype = self.gettype(pathname)
-        if ftype in ['python', 'c++', 'c', 'h', 'go', 'asm']:
-            return True
-        
-        return False
     
     
     def istext(self, pathname):
@@ -156,13 +177,9 @@ class Files(object):
         
     
     def toreal(self, pathname):
-        if pathname == '/':
-            return self.project_path
-        if pathname.startswith("/"):
-            pathname = pathname[1:]
-        return os.path.realpath(os.path.join(self.project_path, pathname))
+        return to_real_path(self.project_path, pathname)
 
-    
+
     def filerev(self, pathname):
         return "-".join([str(self.getsize(pathname)),
                          str(self.gettime(pathname))])

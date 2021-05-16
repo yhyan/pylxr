@@ -6,6 +6,8 @@ import six
 text_factory = str
 
 import os
+import time
+import json
 
 from files import Files
 from models import File, Symbol, Definitions, Ref, init_db, create_session
@@ -34,14 +36,14 @@ class Genxref(object):
 
         self.sym_filetype = {}
 
+        self.track_info = {}
+
 
     def main(self):
 
         self.session = create_session(self.project_name)
 
         self.symid = 1 # Symbol.next_symid()
-
-
 
         from simpleparse import parses
 
@@ -55,17 +57,25 @@ class Genxref(object):
         
         self.init_files(self.start_path)
 
+        t0 = time.time()
         # ctags 符号
         self.symbols(self.start_path)
+        t1 = time.time()
+
         # sym ref
         self.symref(self.start_path)
+        t2 = time.time()
+        self.track_info['t1'] = int(t1-t0)
+        self.track_info['t2'] = int(t2-t1)
+        return self.track_info
 
 
 
     def init_files(self, pathname):
 
         _files = [pathname]
-        
+        file_count = 0
+        line_count = 0
         while _files:
             pathname = _files.pop(0)
 
@@ -79,8 +89,13 @@ class Genxref(object):
                 f.filetype = self.files.gettype(pathname)
                 f.linecount = cnt
                 self.session.add(f)
+                file_count += 1
+                line_count += cnt
                 self.pathname_to_obj[pathname] = f
         self.session.commit()
+
+        self.track_info['file_count'] = file_count
+        self.track_info['line_count'] = line_count
 
 
     def symbols(self, pathname):
@@ -115,15 +130,17 @@ class Genxref(object):
                         self.sym_filetype[sym_id] = o.filetype
                         self.session.add(defin)
 
+                        total_commit += 1
+                        if total_commit % 1000 == 0:
+                            self.session.commit()
+
                     o.set_indexed()
                     self.session.add(o)
-                    total_commit += 1
-                    if total_commit % 1000 == 0:
-                        print(total_commit)
-                        self.session.commit()
+                    logger.info('find %s tags: %s' % (len(tags), pathname))
+
         self.session.commit()
-        print(total_commit)
-        print()
+        self.track_info['total_symbol'] = total_commit
+        logger.info('finish tags, total = %s' % total_commit)
 
         
 
@@ -177,6 +194,7 @@ class Genxref(object):
                     if total_commit % 10000 == 0:
                         print(total_commit)
         self.session.commit()
+        self.track_info['total_ref'] = total_commit
         print()
 
 
@@ -198,5 +216,20 @@ if __name__ == "__main__":
     project_path = trees[project_name]
     init_db(project_name)
     g = Genxref(project_name, project_path, start_path)
-    g.main()
+    track_info = g.main()
+
+    from conf import index_dir
+
+    jsonfile = os.path.join(index_dir, 'trackinfo.json')
+    if not os.path.exists(jsonfile):
+        data = {}
+    else:
+        with open(jsonfile, 'r') as fp:
+            data = json.loads(fp.read())
+    data[project_name] = track_info
+    with open(jsonfile, 'w') as fp:
+        fp.write(json.dumps(data, indent=True))
+
+
+
 

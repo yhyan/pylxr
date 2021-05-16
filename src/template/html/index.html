@@ -5,10 +5,30 @@
   </head>
   <body>
     <h1>Please select one of the following trees:</h1>
-    <ul>
+
+    <table>
+      <tr>
+        <th>Project</th>
+        <th>files</th>
+        <th>total lines</th>
+        <th>total symbols</th>
+        <th>total refs</th>
+        <th>cost defs</th>
+        <th>cost refs</th>
+      </tr>
+
       {% for project_name in trees %}
-      <li><em>{{project_name}}</em>: <a href="/source/{{project_name}}">{{project_name}}</a></li>
+      <tr>
+        <td><a href="/source/{{project_name}}">{{project_name}}</a></td>
+        <td>{{trackinfos[project_name]['file_count']}}</td>
+        <td>{{trackinfos[project_name]['line_count']}}</td>
+        <td>{{trackinfos[project_name]['total_symbol']}}</td>
+        <td>{{trackinfos[project_name]['total_ref']}}</td>
+        <td>{{trackinfos[project_name]['t1']}}</td>
+        <td>{{trackinfos[project_name]['t2']}}</td>
+      </tr>
       {% end %}
-    </ul>
+    </table>
+
   </body>
 </html>

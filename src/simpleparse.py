@@ -9,7 +9,7 @@ from files import Files
 
 from dbcache import symbolcache
 
-__all__ = ['PythonParse', 'CPPParse', 'CParse', 'AsmParse', 'parses']
+__all__ = ['PythonParse', 'CPPParse', 'CParse', 'AsmParse', 'parses', 'parse_file_to_html',]
 
 def find_escape_char(s, right, left):
     c = 0
@@ -211,6 +211,9 @@ class SimpleParse(object):
         htmls.insert(0, head)
         htmls.append(tail)
         return ''.join(htmls)
+
+    def get_deps(self):
+        raise Exception("Not Impl")
 
 
 class PythonParse(SimpleParse):
@@ -553,6 +556,50 @@ class GOParse(SimpleParse):
                 kk.append(i)
         return ''.join(kk)
 
+class CmakeParse(SimpleParse):
+    lang = 'cmake'
+    blankre = re.compile('([\s\<\>"])', re.M)
+    identdef = re.compile('([a-zA-Z_]\w+)', re.M)
+
+    keywords = ['cmake_minimum_required',
+                'project',
+                ]
+
+    reserved = []
+    for k in keywords:
+        reserved.append(k.lower())
+        reserved.append(k.upper())
+
+    spec = [
+        {"open": "#", "close": "\n", "type": "comment"},
+        {"open": '"', "close": '"', "type": "string"},
+        {"open": "'", "close": "'", "type": "string"},
+        # {"open": '#pa', "close": '\n', "type": "include"}
+    ]
+
+
+
+    def _parse_code(self, frag):
+        ss = self.identdef.split(frag)
+        kk = []
+        for i in ss:
+            if not i:
+                continue
+            if i == '<':
+                i = "&lt;"
+            elif i == '>':
+                i = "&gt;"
+
+            if self.is_reserved(i):
+                kk.append(self.get_reserved_link(i))
+            elif self.is_ident(i):
+                kk.append(self.get_ident_link(i))
+            else:
+                i = i.replace("<", "&lt;").replace(">", "&gt;")
+                kk.append(i)
+        return ''.join(kk)
+
+
 
 parses = {
     PythonParse.lang: PythonParse,
@@ -562,6 +609,42 @@ parses = {
     AsmParse.lang: AsmParse,
 
 }
+
+def parse_file_to_html(reqfile, project_name, project_path):
+    filename = os.path.basename(reqfile).lower()
+    if filename.endswith(".py"):
+        parse = PythonParse(project_name, project_path)
+    elif filename.endswith(".c"):
+        parse = CParse(project_name, project_path)
+    elif filename.endswith(".cpp"):
+        parse = CPPParse(project_name, project_path)
+    elif filename.endswith(".h"):
+        parse = CPPParse(project_name, project_path)
+    elif filename.endswith('.go'):
+        parse = GOParse(project_name, project_path)
+    elif filename.endswith('.s'):
+        parse = AsmParse(project_name, project_path)
+    elif filename == 'cmakelists.txt':
+        parse = CmakeParse(project_name, project_path)
+    else:
+        parse = None
+    if parse:
+        parse.parse_file(reqfile)
+        return parse.out()
+
+    html = '''<pre class="filecontent">'''
+
+    from files import to_real_path
+    from utils import smart_read
+
+    lines = smart_read(to_real_path(project_path, reqfile), retrun_lines=True)
+    lineno = 0
+    for li in lines:
+        lineno += 1
+        li = li.replace('<', '&lt;').replace('>', '&gt;')
+        html += '''<a class='fline' name="%04d">%04d</a> %s''' % (lineno, lineno, li)
+    html += '''</pre>'''
+    return html
 
 
 

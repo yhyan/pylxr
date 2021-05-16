@@ -1,14 +1,13 @@
 #!/usr/bin/env python
-import logging
+#coding:utf-8
+
 import tornado.escape
 import tornado.ioloop
 import tornado.web
 import os.path
-import uuid
+import json
 
 from tornado import httpserver
-from tornado.concurrent import Future
-from tornado import gen
 from tornado.options import define, options, parse_command_line
 from tornado import template
 
@@ -38,6 +37,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.files = None
         self.detail = {}
         self.detail['trees'] = self.get_all_trees()
+        self.detail['trackinfos'] = self.get_all_track_info()
         self.detail['title'] = 'pylxr'
         self.detail['pages'] = {
             'source': 'Source navigation',
@@ -59,8 +59,31 @@ class MainHandler(tornado.web.RequestHandler):
                 ret[project_name] = project_dict[project_name]
         return ret
 
+    def get_all_track_info(self):
+        from conf import index_dir
+        jsonfile = os.path.join(index_dir, 'trackinfo.json')
+        if not os.path.exists(jsonfile):
+            data = {}
+        else:
+            with open(jsonfile, 'r') as fp:
+                data = json.loads(fp.read())
 
-
+        project_dict = conf.trees
+        ret = {}
+        for project_name in project_dict:
+            dbfile = '%s.sqlite3' % project_name
+            dbfile = os.path.join(index_dir, dbfile)
+            if os.path.exists(dbfile):
+                ret[project_name] = data.get(project_name,
+                                             {
+                                                 't1':0,
+                                                 't2':0,
+                                                 'total_symbol': 0,
+                                                 'line_count': 0,
+                                                 'file_count': 0,
+                                                 'total_ref': 0,
+                                             })
+        return ret
 
 
     def _identfile(self, filename):
@@ -182,37 +205,10 @@ class MainHandler(tornado.web.RequestHandler):
         return html
 
     def _calc_code_file(self):
-        from simpleparse import PythonParse, CParse, CPPParse, GOParse, AsmParse
+        from simpleparse import parse_file_to_html
+        html_text = parse_file_to_html(self.reqfile, self.project_name, self.project_path)
+        return html_text
 
-        if self.reqfile.lower().endswith(".py"):
-            parse = PythonParse(self.project_name, self.project_path)
-        elif self.reqfile.lower().endswith(".c"):
-            parse = CParse(self.project_name, self.project_path)
-        elif self.reqfile.lower().endswith(".cpp"):
-            parse = CPPParse(self.project_name, self.project_path)
-        elif self.reqfile.lower().endswith(".h"):
-            parse = CPPParse(self.project_name, self.project_path)
-        elif self.reqfile.lower().endswith('.go'):
-            parse = GOParse(self.project_name, self.project_path)
-        elif self.reqfile.lower().endswith('.s'):
-            parse = AsmParse(self.project_name, self.project_path)
-        else:
-            parse = None
-        if parse:
-            parse.parse_file(self.reqfile)
-            return parse.out()
-        return self._calc_raw_file()
-
-    def _calc_raw_file(self):
-        html = '''<pre class="filecontent">'''
-        lines = self.files.get_lines(self.reqfile)
-        lineno = 0
-        for li in lines:
-            lineno += 1
-            li = li.replace('<', '&lt;').replace('>', '&gt;')
-            html += '''<a class='fline' name="%04d">%04d</a> %s''' % (lineno, lineno, li)
-        html += '''</pre>'''
-        return html
 
     def _calc_text_file(self):
         html = '''<pre class="filecontent">'''
@@ -233,12 +229,10 @@ class MainHandler(tornado.web.RequestHandler):
             return self._calc_text_file()
         if self.files.isdir(self.reqfile):
             return self._calc_dir_content()
-        elif self.files.parseable(self.reqfile):
-            return self._calc_code_file()
         elif self.reqfile.lower().endswith('html'):
             return self._calc_html_file()
         else:
-            return self._calc_raw_file()
+            return self._calc_code_file()
 
     def return_source_page(self):
         self.detail['source_content'] = self._calc_source_content()
