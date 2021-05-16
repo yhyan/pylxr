@@ -780,18 +780,23 @@ parses = {
 
 def parse_file_to_html(reqfile, project_name, project_path):
     filename = os.path.basename(reqfile).lower()
-    if filename.endswith(".py"):
+
+    from files import get_file_type
+    idx = filename.rfind(".")
+    ext = filename[idx + 1:].lower() if i > 0  else None
+
+    file_type = get_file_type(ext)
+    if file_type == 'python':
         parse = PythonParse(project_name, project_path)
-    elif filename.endswith(".c"):
+    elif file_type == 'c':
         parse = CParse(project_name, project_path)
-    elif filename.endswith(".cpp") or filename.endswith('.cxx'):
+    elif file_type == 'c++':
         parse = CPPParse(project_name, project_path)
-    elif filename.endswith(".h"):
-        parse = CPPParse(project_name, project_path)
-    elif filename.endswith('.go'):
+    elif file_type == 'go':
         parse = GOParse(project_name, project_path)
-    elif filename.endswith('.s'):
+    elif file_type == 'asm':
         parse = AsmParse(project_name, project_path)
+
     elif filename == 'cmakelists.txt':
         parse = CmakeParse(project_name, project_path)
     elif filename == 'makefile':

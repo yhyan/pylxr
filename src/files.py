@@ -7,6 +7,33 @@ def to_real_path(project_root_path, pathname):
         pathname = pathname[1:]
     return os.path.realpath(os.path.join(project_root_path, pathname))
 
+def get_file_type(ext):
+    if ext == 'py':
+        return 'python'
+    elif ext == 'c':
+        return 'c'
+    elif ext == 'cpp' or ext == 'cc' or ext == 'hpp' or ext == 'cxx':
+        return 'c++'
+    elif ext == 'h':
+        return 'c++'
+    elif ext == 'go':
+        return 'go'
+    elif ext == 's':
+        return 'asm'
+    elif ext == 'js' or ext == 'ts':
+        return 'javascript'
+    elif ext == 'java':
+        return 'java'
+
+    if pathname == 'makefile':
+        return 'makefile'
+    elif pathname == 'readme':
+        return 'readme'
+
+    return None
+
+
+
 
 class Files(object):
     '''
@@ -70,31 +97,12 @@ class Files(object):
     def gettype(self, pathname):
         idx = pathname.rfind(".")
         if idx > 0:
-            ext = pathname[idx+1:].lower()
+            ext = pathname[idx + 1:].lower()
         else:
             ext = None
-
-        if ext == 'py':
-            return 'python'
-        elif ext == 'c':
-            return 'c'
-        elif ext == 'cpp' or ext == 'cc' or ext == 'hpp' or ext == 'cxx':
-            return 'c++'
-        elif ext == 'h':
-            return 'c++'
-        elif ext == 'go':
-            return 'go'
-        elif ext == 's':
-            return 'asm'
-        elif ext == 'js' or ext == 'ts':
-            return 'javascript'
-        elif ext == 'java':
-            return 'java'
-
-        if pathname == 'makefile':
-            return 'makefile'
-        elif pathname == 'readme':
-            return 'readme'
+        _type = get_file_type(ext)
+        if _type is not None:
+            return _type
 
         if self.istext(pathname):
             from utils import smart_read
