@@ -97,8 +97,8 @@ class Files(object):
             return 'readme'
 
         if self.istext(pathname):
-            with open(self.toreal(pathname)) as fp:
-                lines = fp.readlines()
+            from utils import smart_read
+            lines = smart_read(self.toreal(pathname), retrun_lines=True)
             for li in lines:
                 li = li.strip()
                 if not li:
